@@ -1,0 +1,1521 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NATE: 불균형 클래스 신용 평가를 위한 비모수적 설명 가능 접근법 (한국어 번역)</title>
+    <!-- Pretendard Font -->
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- KaTeX -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+    <style>
+        :root {
+            --primary: #0284c7;
+            --primary-dark: #0369a1;
+            --primary-light: #f0f9ff;
+            --primary-border: #bae6fd;
+            --accent: #8b5cf6;
+            --accent-light: #f5f3ff;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --surface-secondary: #f1f5f9;
+            --border: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #475569;
+            --text-light: #94a3b8;
+            --code-bg: #f1f5f9;
+            --sidebar-width: 290px;
+            --header-height: 64px;
+            --font-size: 16px;
+        }
+
+        [data-theme="dark"] {
+            --primary: #38bdf8;
+            --primary-dark: #7dd3fc;
+            --primary-light: #1e293b;
+            --primary-border: #38bdf840;
+            --accent: #a78bfa;
+            --accent-light: #4c1d9530;
+            --bg: #0b0f19;
+            --surface: #131b2e;
+            --surface-secondary: #1e293b;
+            --border: #243048;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --text-light: #64748b;
+            --code-bg: #1e293b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+            font-size: var(--font-size);
+            line-height: 1.85;
+            color: var(--text-main);
+            background-color: var(--bg);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Top Navigation */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: var(--header-height);
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.5rem;
+            z-index: 1000;
+        }
+        [data-theme="dark"] .navbar {
+            background: rgba(19, 27, 46, 0.92);
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--text-main);
+            text-decoration: none;
+        }
+
+        .nav-brand .badge {
+            background: var(--primary);
+            color: white;
+            font-size: 0.75rem;
+            padding: 0.2rem 0.55rem;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .nav-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.92rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .nav-link:hover {
+            color: var(--primary);
+            background: var(--primary-light);
+        }
+        .nav-link.active {
+            color: var(--primary);
+            background: var(--primary-light);
+            font-weight: 650;
+        }
+
+        .nav-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-ctrl {
+            background: var(--surface-secondary);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-ctrl:hover {
+            background: var(--border);
+            color: var(--primary);
+        }
+
+        /* Layout */
+        .layout-container {
+            display: flex;
+            margin-top: var(--header-height);
+            min-height: calc(100vh - var(--header-height));
+        }
+
+        /* Sidebar TOC */
+        .sidebar {
+            width: var(--sidebar-width);
+            position: fixed;
+            top: var(--header-height);
+            bottom: 0;
+            left: 0;
+            overflow-y: auto;
+            padding: 1.5rem 1rem;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            z-index: 900;
+        }
+
+        .toc-title {
+            font-size: 0.82rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-light);
+            margin-bottom: 0.75rem;
+            padding-left: 0.5rem;
+        }
+
+        .toc-menu {
+            list-style: none;
+        }
+
+        .toc-item {
+            margin-bottom: 0.25rem;
+        }
+
+        .toc-link {
+            display: block;
+            padding: 0.45rem 0.65rem;
+            border-radius: 6px;
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: all 0.2s;
+            line-height: 1.45;
+        }
+        .toc-link:hover {
+            color: var(--primary);
+            background: var(--surface-secondary);
+        }
+        .toc-link.active {
+            color: var(--primary);
+            background: var(--primary-light);
+            font-weight: 650;
+            border-left: 3px solid var(--primary);
+            border-radius: 0 6px 6px 0;
+        }
+
+        .toc-sublink {
+            padding-left: 1.5rem;
+            font-size: 0.82rem;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 2.5rem 3.5rem;
+            max-width: 1120px;
+        }
+
+        /* Header / Meta Card */
+        .paper-header {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 2.5rem;
+            margin-bottom: 2.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+        }
+
+        .journal-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: #ede9fe;
+            color: #6d28d9;
+            padding: 0.35rem 0.85rem;
+            border-radius: 9999px;
+            font-size: 0.82rem;
+            font-weight: 650;
+            margin-bottom: 1.25rem;
+        }
+        [data-theme="dark"] .journal-badge {
+            background: #4c1d95;
+            color: #ddd6fe;
+        }
+
+        .paper-title {
+            font-size: 2.2rem;
+            font-weight: 800;
+            line-height: 1.35;
+            color: var(--text-main);
+            margin-bottom: 0.6rem;
+            letter-spacing: -0.02em;
+        }
+
+        .paper-subtitle {
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+        }
+
+        .authors-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.2rem;
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            margin-bottom: 1.25rem;
+            padding-bottom: 1.25rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .author-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.2rem;
+            font-size: 0.88rem;
+            color: var(--text-muted);
+        }
+
+        .meta-item strong {
+            color: var(--text-main);
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        /* Key Takeaway Box */
+        .takeaway-card {
+            background: linear-gradient(135deg, rgba(2, 132, 199, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%);
+            border: 1px solid rgba(2, 132, 199, 0.25);
+            border-radius: 12px;
+            padding: 1.75rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .takeaway-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            margin-bottom: 1rem;
+        }
+
+        .takeaway-list {
+            padding-left: 1.25rem;
+        }
+
+        .takeaway-list li {
+            margin-bottom: 0.6rem;
+            color: var(--text-main);
+        }
+
+        /* Section Styling */
+        section {
+            margin-bottom: 3.5rem;
+            scroll-margin-top: calc(var(--header-height) + 1.5rem);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            font-weight: 750;
+            margin-bottom: 1.25rem;
+            color: var(--text-main);
+            padding-bottom: 0.6rem;
+            border-bottom: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            letter-spacing: -0.01em;
+        }
+
+        h3 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin: 2rem 0 1rem;
+            color: var(--text-main);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            font-weight: 650;
+            margin: 1.3rem 0 0.6rem;
+            color: var(--text-main);
+        }
+
+        p {
+            margin-bottom: 1.25rem;
+            color: var(--text-main);
+            text-align: justify;
+            word-break: keep-all;
+        }
+
+        /* Callouts / Alerts */
+        .callout {
+            border-radius: 10px;
+            padding: 1.25rem 1.5rem;
+            margin: 1.5rem 0;
+            border-left: 4px solid;
+            background: var(--surface-secondary);
+        }
+
+        .callout.info {
+            border-color: var(--primary);
+            background: var(--primary-light);
+        }
+
+        .callout.tip {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .callout.warning {
+            border-color: #f59e0b;
+            background: rgba(245, 158, 11, 0.1);
+        }
+
+        .callout-title {
+            font-weight: 700;
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Flowchart / Architecture Box */
+        .arch-diagram {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        .flow-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .flow-card {
+            background: var(--surface-secondary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.2rem 1rem;
+            text-align: left;
+            position: relative;
+        }
+
+        .flow-badge {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+        }
+
+        .flow-card h5 {
+            font-size: 1rem;
+            margin-bottom: 0.4rem;
+            color: var(--text-main);
+        }
+
+        .flow-card p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 0;
+            text-align: left;
+        }
+
+        /* Tables */
+        .table-wrapper {
+            margin: 2rem 0;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow-x: auto;
+            background: var(--surface);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88rem;
+        }
+
+        caption {
+            padding: 0.85rem 1.2rem;
+            font-weight: 700;
+            font-size: 0.95rem;
+            text-align: left;
+            color: var(--text-main);
+            background: var(--surface-secondary);
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background: var(--surface-secondary);
+            color: var(--text-main);
+            font-weight: 650;
+            padding: 0.7rem 0.85rem;
+            border-bottom: 2px solid var(--border);
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 0.7rem 0.85rem;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-main);
+        }
+
+        tr:nth-child(even) {
+            background: rgba(0, 0, 0, 0.015);
+        }
+        [data-theme="dark"] tr:nth-child(even) {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        tr:hover {
+            background: var(--primary-light);
+        }
+
+        .text-right {
+            text-align: right;
+        }
+        .text-center {
+            text-align: center;
+        }
+        .highlight-val {
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        /* English Toggle Details */
+        details.en-box {
+            background: var(--surface-secondary);
+            border: 1px dashed var(--border);
+            border-radius: 8px;
+            padding: 0.6rem 1rem;
+            margin: 1rem 0 1.5rem;
+            font-size: 0.88rem;
+        }
+
+        details.en-box summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--text-muted);
+            user-select: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        details.en-box summary:hover {
+            color: var(--primary);
+        }
+
+        details.en-box .en-content {
+            margin-top: 0.75rem;
+            color: var(--text-muted);
+            font-style: italic;
+            border-top: 1px dashed var(--border);
+            padding-top: 0.75rem;
+            line-height: 1.7;
+        }
+
+        /* Formula Box */
+        .formula-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.2rem 1.5rem;
+            margin: 1.5rem 0;
+            text-align: center;
+            overflow-x: auto;
+        }
+
+        /* Keywords */
+        .keywords-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 1.2rem;
+        }
+
+        .keyword-tag {
+            background: var(--surface-secondary);
+            border: 1px solid var(--border);
+            font-size: 0.82rem;
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+            color: var(--text-muted);
+        }
+
+        /* Footer */
+        footer {
+            margin-top: 4rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border);
+            font-size: 0.85rem;
+            color: var(--text-light);
+            text-align: center;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .sidebar {
+                display: none;
+            }
+            .main-content {
+                margin-left: 0;
+                padding: 1.5rem;
+            }
+            .paper-title {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Navigation -->
+    <header class="navbar">
+        <a href="index.html" class="nav-brand">
+            <i class="fa-solid fa-graduation-cap"></i>
+            <span>신용 평가 논문 번역 포털</span>
+            <span class="badge">NATE 논문</span>
+        </a>
+        <nav class="nav-links">
+            <a href="index.html" class="nav-link"><i class="fa-solid fa-house"></i> 포털 홈</a>
+            <a href="NOTE_korean.html" class="nav-link"><i class="fa-solid fa-file-lines"></i> NOTE 논문</a>
+            <a href="NATE_korean.html" class="nav-link active"><i class="fa-solid fa-file-lines"></i> NATE 논문</a>
+        </nav>
+        <div class="nav-controls">
+            <button class="btn-ctrl" id="btn-font-dec" title="글자 크기 축소"><i class="fa-solid fa-font"></i>-</button>
+            <button class="btn-ctrl" id="btn-font-inc" title="글자 크기 확대"><i class="fa-solid fa-font"></i>+</button>
+            <button class="btn-ctrl" id="btn-theme" title="다크 모드 전환"><i class="fa-solid fa-moon"></i></button>
+            <button class="btn-ctrl" onclick="window.print()" title="문서 인쇄"><i class="fa-solid fa-print"></i></button>
+        </div>
+    </header>
+
+    <div class="layout-container">
+        <!-- Sidebar TOC -->
+        <aside class="sidebar">
+            <div class="toc-title"><i class="fa-solid fa-list-ul"></i> 목차 (Contents)</div>
+            <ul class="toc-menu">
+                <li class="toc-item"><a href="#abstract" class="toc-link active">1. 초록 (Abstract)</a></li>
+                <li class="toc-item"><a href="#introduction" class="toc-link">2. 서론 (Introduction)</a></li>
+                <li class="toc-item"><a href="#related-work" class="toc-link">3. 관련 연구 (Related Work)</a></li>
+                <li class="toc-item"><a href="#methods" class="toc-link">4. 연구 방법론 (Methods)</a></li>
+                <li class="toc-item"><a href="#methods-pipeline" class="toc-link toc-sublink">4.1 NATE 4단계 파이프라인</a></li>
+                <li class="toc-item"><a href="#methods-resampling" class="toc-link toc-sublink">4.2 리샘플링 전략 (NearMiss vs SMOTE)</a></li>
+                <li class="toc-item"><a href="#methods-models" class="toc-link toc-sublink">4.3 분류 모델 및 최적화</a></li>
+                <li class="toc-item"><a href="#methods-treeexplainer" class="toc-link toc-sublink">4.4 TreeExplainer 기반 XAI</a></li>
+                <li class="toc-item"><a href="#results" class="toc-link">5. 실험 및 결과 (Results)</a></li>
+                <li class="toc-item"><a href="#results-baseline" class="toc-link toc-sublink">5.1 원본 불균형 데이터 평가</a></li>
+                <li class="toc-item"><a href="#results-resampling" class="toc-link toc-sublink">5.2 리샘플링 기법별 성능 비교</a></li>
+                <li class="toc-item"><a href="#results-cwgan-comp" class="toc-link toc-sublink">5.3 기존 벤치마크 대비 성능/속도</a></li>
+                <li class="toc-item"><a href="#results-shap" class="toc-link toc-sublink">5.4 TreeExplainer 해석 심층 분석</a></li>
+                <li class="toc-item"><a href="#discussion" class="toc-link">6. 고찰 및 논의 (Discussion)</a></li>
+                <li class="toc-item"><a href="#conclusion" class="toc-link">7. 결론 (Conclusion)</a></li>
+                <li class="toc-item"><a href="#references" class="toc-link">8. 주요 참고문헌</a></li>
+            </ul>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Paper Header Card -->
+            <div class="paper-header">
+                <span class="journal-badge"><i class="fa-solid fa-book-open"></i> PLOS ONE | Peer-Reviewed Research Article (2024.12.31)</span>
+                <h1 class="paper-title">NATE: 불균형 클래스 신용 평가를 위한 비모수적 설명 가능 접근법</h1>
+                <div class="paper-subtitle">NATE: Non-pArameTric approach for Explainable credit scoring on imbalanced class</div>
+                
+                <div class="authors-list">
+                    <div class="author-item"><i class="fa-solid fa-user"></i> <strong>한성일 (Seongil Han)</strong><sup>1</sup></div>
+                    <div class="author-item"><i class="fa-solid fa-envelope"></i> <strong>정해민 (Haemin Jung)</strong><sup>2*</sup> (교신저자)</div>
+                </div>
+
+                <div class="meta-grid">
+                    <div class="meta-item">
+                        <strong>소속 기관</strong>
+                        1. 런던 대학교 버크벡 칼리지 컴퓨팅 & 수리과학부 (Birkbeck, University of London, UK)<br>
+                        2. 국립한국교통대학교 산업경영공학과 (Korea National University of Transportation, Chungju, South Korea)
+                    </div>
+                    <div class="meta-item">
+                        <strong>출판 정보 & DOI</strong>
+                        Open Access | DOI: <a href="https://doi.org/10.1371/journal.pone.0316454" target="_blank" rel="noopener">10.1371/journal.pone.0316454</a>
+                    </div>
+                </div>
+
+                <div class="keywords-bar">
+                    <span class="keyword-tag"><i class="fa-solid fa-tag"></i> 신용 점수 평가 (Credit Scoring)</span>
+                    <span class="keyword-tag"><i class="fa-solid fa-tag"></i> 비모수 트리 앙상블 (Non-parametric Tree Ensemble)</span>
+                    <span class="keyword-tag"><i class="fa-solid fa-tag"></i> 클래스 불균형 (Imbalanced Class)</span>
+                    <span class="keyword-tag"><i class="fa-solid fa-tag"></i> SMOTE 오버샘플링</span>
+                    <span class="keyword-tag"><i class="fa-solid fa-tag"></i> NearMiss 언더샘플링</span>
+                    <span class="keyword-tag"><i class="fa-solid fa-tag"></i> SHAP TreeExplainer</span>
+                    <span class="keyword-tag"><i class="fa-solid fa-tag"></i> 금융 XAI</span>
+                </div>
+            </div>
+
+            <!-- Key Takeaways -->
+            <div class="takeaway-card">
+                <div class="takeaway-title"><i class="fa-solid fa-lightbulb"></i> 핵심 요약 (Key Takeaways)</div>
+                <ul class="takeaway-list">
+                    <li><strong>핵심 질문:</strong> 불균형 데이터셋에서 모수 모델(로지스틱 회귀)과 비모수 앙상블 모델(RF, GB, XGB)의 예측 성능과 설명 가능성은 리샘플링 전략에 따라 어떻게 변화하는가?</li>
+                    <li><strong>언더샘플링(NearMiss)의 치명적 결함:</strong> 다수 클래스(정상 고객)를 삭감하는 언더샘플링은 모델 학습에 필수적인 방대한 정상 거래 패턴 정보를 유실시켜, 일반화 성능과 지표(AUC, MCC, F1)를 심각하게 손상시킵니다.</li>
+                    <li><strong>오버샘플링(SMOTE)의 우수성:</strong> 소수 클래스(부도 고객)를 합성하는 SMOTE는 원본 데이터의 정보를 온전히 보존하며, 클래스 비율이 50% 균형에 도달할 때 모든 비모수 앙상블 모델의 성능을 극대화합니다 (GB의 AUC 0.9649, F1 0.9072 달성).</li>
+                    <li><strong>모수 모델의 구조적 한계:</strong> 로지스틱 회귀는 리샘플링을 거쳐도 비선형 관계를 학습하지 못해 AUC가 0.77 수준에 정체되었으며, 오히려 균형 비율이 높아질수록 AUC가 감소(-0.1092)하는 역설을 보였습니다.</li>
+                    <li><strong>XAI를 통한 블랙박스 해소:</strong> 비모수 모델에 SHAP TreeExplainer를 결합하여, 단순 변수 중요도(전역)뿐만 아니라 비선형 상호작용 및 개별 대출 승인/거절(지역)에 대한 완벽한 정량적 근거를 제공함으로써 모수 모델 이상의 해석력을 입증했습니다.</li>
+                </ul>
+            </div>
+
+            <!-- 1. Abstract -->
+            <section id="abstract">
+                <h2><i class="fa-solid fa-bookmark"></i> 1. 초록 (Abstract)</h2>
+                <p>
+                    신용 평가(Credit scoring) 모델은 금융 기관이 차주의 채무 불이행 위험을 정밀하게 진단하고 수익 건전성을 유지하는 데 핵심적인 기둥입니다. 전통적으로는 해석이 용이한 로지스틱 회귀(Logistic Regression, LR)와 같은 모수(Parametric) 모델이 주로 사용되어 왔으나, 복잡한 비선형 관계를 포착하는 데 한계가 있어 예측 성능이 제한적이었습니다. 이에 반해 비모수(Non-parametric) 트리 기반 앙상블 모델은 우수한 예측 정확도를 제공하지만, 의사결정 과정이 불투명한 블랙박스(Black-box) 특성으로 인해 금융 실무 적용에 어려움이 있었습니다.
+                </p>
+                <p>
+                    더욱이 현실의 신용 데이터는 부도 사례가 극히 적은 심각한 <strong>클래스 불균형(Class Imbalance)</strong> 문제를 수반하여 머신러닝 모델의 학습을 크게 저해합니다. 본 연구는 이러한 문제를 해결하기 위해 <strong>불균형 클래스에 대한 비모수적 설명 가능 신용 평가 프레임워크인 NATE(Non-pArameTric approach for Explainable credit scoring)</strong>를 제안합니다.
+                </p>
+                <p>
+                    NATE는 150,000건의 Give Me Some Credit (GMSC) 데이터셋을 활용하여, 언더샘플링(NearMiss)과 오버샘플링(SMOTE)을 다양한 불균형 비율(7%, 13%, 24%, 33%, 50%)로 단계별 적용하고, 모수 모델(LR)과 비모수 모델(Random Forest, Gradient Boosting, XGBoost)의 예측 성능(AUC, MCC, F1)을 정밀 비교합니다. 또한 SHAP(SHapley Additive exPlanations) 기반의 <strong>TreeExplainer</strong>를 통합하여 모델의 전역적(Global) 및 국소적(Local) 인과관계를 체계적으로 규명합니다.
+                </p>
+                <p>
+                    실험 결과, NATE 프레임워크에서 SMOTE 오버샘플링을 결합한 비모수 앙상블 모델(GB, XGB, RF)은 전통적 로지스틱 회귀를 압도하였으며, 기존 cWGAN 벤치마크 대비 훨씬 빠른 연산 시간 내에 현저히 높은 성능을 달성하였습니다. 동시에 TreeExplainer를 통해 모수 모델 이상의 투명하고 상세한 판정 근거를 제시함으로써, 고성능과 설명 가능성을 완벽히 양립할 수 있음을 입증하였습니다.
+                </p>
+
+                <details class="en-box">
+                    <summary><i class="fa-solid fa-language"></i> 영문 초록 원문 보기</summary>
+                    <div class="en-content">
+                        Credit scoring models play a crucial role for financial institutions in evaluating borrower risk and sustaining profitability. Although machine learning models have advanced credit evaluation, class imbalance remains a critical challenge. The conventional parametric Logistic Regression (LR) model offers interpretability but suffers from constrained predictive power on non-linear datasets. In contrast, non-parametric tree-based ensemble models achieve superior predictive accuracy but lack explainability. To address these limitations, this paper proposes NATE: Non-pArameTric approach for Explainable credit scoring on imbalanced class. Utilizing the Give Me Some Credit (GMSC) dataset, NATE compares parametric (LR) and non-parametric models (Random Forest, Gradient Boosting, XGBoost) across varying imbalance ratios using NearMiss and SMOTE resampling techniques, and provides transparent explanations using SHAP TreeExplainer. Experimental results show that NATE substantially outperforms traditional logistic regression and prior GAN benchmarks in predictive power (AUC, MCC, F1) while securing rigorous model explainability.
+                    </div>
+                </details>
+            </section>
+
+            <!-- 2. Introduction -->
+            <section id="introduction">
+                <h2><i class="fa-solid fa-compass"></i> 2. 서론 (Introduction)</h2>
+                <p>
+                    신용 위험(Credit risk)은 대출 신청자의 신용도 결함으로 인해 발생할 수 있는 잠재적 경제 손실로 정의됩니다. 금융 기관의 지속 가능성은 비우량 차주를 정확히 판별하여 채무 불이행을 사전에 차단하는 신용 평가 모델의 정밀도에 직결되어 있습니다.
+                </p>
+                <p>
+                    금융권에서 수십 년간 표준으로 활용된 <strong>로지스틱 회귀(LR)</strong>는 대표적인 모수(Parametric) 모델입니다. 독립 변수들의 선형 결합을 통해 부도 확률을 계산하므로 계수의 부호와 크기를 통해 원인을 즉각 해석할 수 있다는 독보적인 장점이 있습니다. 그러나 모수 모델은 데이터가 정규성 또는 특정 선형 함수 형태를 따른다는 엄격한 가정을 전제로 하므로, 차주의 신용 행동에 내재된 복잡한 다차원 비선형 관계를 포착할 수 없어 <strong>예측 성능(Predictive power)의 구조적 한계</strong>에 부딪힙니다.
+                </p>
+                <p>
+                    반대로 <strong>랜덤 포레스트(RF)</strong>, <strong>그래디언트 부스팅(GB)</strong>, <strong>eXtreme Gradient Boosting (XGB)</strong>과 같은 비모수(Non-parametric) 트리 기반 모델은 사전 함수적 가정을 배제하고 데이터 자체의 패턴으로부터 학습합니다. 따라서 비선형 데이터셋에서 로지스틱 회귀보다 훨씬 뛰어난 성능을 발휘합니다. 하지만 수백 개의 의사결정나무가 복잡하게 얽힌 앙상블 구조는 왜 특정 신청자가 거절되었는지 설명하기 어렵게 만드는 <strong>블랙박스 문제</strong>를 야기합니다.
+                </p>
+                <p>
+                    설상가상으로 신용 데이터는 채무 불이행 고객이 전체의 5~10% 미만에 불과한 심각한 <strong>클래스 불균형(Class Imbalance)</strong>을 지닙니다. 불균형 데이터로 학습된 머신러닝 알고리즘은 전체 정확도를 극대화하기 위해 다수 클래스(정상 고객)만 맞추도록 편향되며, 정작 중요한 소수 클래스(부도 고객)를 정상으로 오분류하는 치명적인 오류를 범하게 됩니다.
+                </p>
+
+                <div class=\"callout info\">
+                    <div class=\"callout-title\"><i class=\"fa-solid fa-bullseye\"></i> NATE 프레임워크의 연구 목표</div>
+                    <p style=\"margin-bottom:0;\">
+                        본 연구는 <strong>NATE(Non-pArameTric approach for Explainable credit scoring)</strong> 프레임워크를 정립하여 다음 세 가지 질문에 명확한 해답을 제시합니다:<br>
+                        1. 언더샘플링(NearMiss)과 오버샘플링(SMOTE) 중 어떤 리샘플링 전략이 비선형 불균형 신용 데이터에 더 효과적인가?<br>
+                        2. 불균형 비율(IR)의 단계적 변화가 모수 모델과 비모수 앙상블 모델에 미치는 차별적 영향은 무엇인가?<br>
+                        3. SHAP TreeExplainer를 통해 비모수 앙상블 모델의 블랙박스를 해소하고 로지스틱 회귀 이상의 설명력을 확보할 수 있는가?
+                    </p>
+                </div>
+            </section>
+
+            <!-- 3. Related Work -->
+            <section id="related-work">
+                <h2><i class="fa-solid fa-book"></i> 3. 관련 연구 (Related Work)</h2>
+                
+                <h3>3.1 신용 평가 모델링 기법의 진화</h3>
+                <p>
+                    초기 신용 평가는 판별 분석(LDA)과 로지스틱 회귀(LR) 등 통계적 기법에 의존하였습니다. 이후 서포트 벡터 머신(SVM), 인공신경망(ANN)을 거쳐 현대에는 여러 개의 결정 트리를 결합하여 분산을 낮추는 배깅(Bagging, 예: Random Forest)과 잔차를 순차 학습하여 편향을 낮추는 부스팅(Boosting, 예: Gradient Boosting, XGBoost) 기법이 신용 평가의 주류로 자리잡았습니다.
+                </p>
+                <p>
+                    최근 연구들은 트리 기반 부스팅 앙상블이 정형(Tabular) 금융 데이터에서 딥러닝보다 적은 튜닝 비용으로 우수한 성능을 발휘함을 일관되게 보여주고 있습니다.
+                </p>
+
+                <h3>3.2 불균형 데이터 리샘플링 기법</h3>
+                <p>
+                    클래스 불균형을 극복하기 위한 기법은 크게 언더샘플링과 오버샘플링으로 분류됩니다:
+                </p>
+                <ul style=\"padding-left: 1.5rem; margin-bottom: 1.25rem;\">
+                    <li style=\"margin-bottom: 0.5rem;\"><strong>NearMiss (언더샘플링):</strong> k-최근접 이웃(KNN) 거리를 기반으로 다수 클래스 샘플을 선택적으로 제거합니다. NearMiss-1은 가장 가까운 3개 소수 클래스까지의 평균 거리가 가장 짧은 다수 샘플을 선택하고, NearMiss-2는 가장 먼 3개 소수 샘플과의 평균 거리가 짧은 샘플을, NearMiss-3은 각 소수 샘플에 대해 가장 가까운 다수 샘플을 선택합니다. 그러나 언더샘플링은 <strong>다수 클래스의 유용한 정보가 대량 폐기</strong>된다는 본질적 위험이 있습니다.</li>
+                    <li><strong>SMOTE (오버샘플링):</strong> 소수 클래스 샘플 간의 선형 보간을 통해 가상의 합성(Synthetic) 샘플을 생성하여 데이터 균형을 맞춥니다. 원본 다수 클래스 데이터를 전혀 손실하지 않는다는 강력한 장점을 가집니다.</li>
+                </ul>
+
+                <h3>3.3 설명 가능한 AI(XAI)와 SHAP 이론</h3>
+                <p>
+                    기존의 불순도 기반 특성 중요도(Gini Importance, Information Gain)는 높은 기수(Cardinality)를 가진 연속형 변수에 편향되며, 특성 간 상호작용을 파악할 수 없다는 한계가 있었습니다.
+                </p>
+                <p>
+                    Lundberg & Lee(2017)가 제안한 <strong>SHAP(SHapley Additive exPlanations)</strong>은 협력 게임 이론의 섀플리 값에 기반하여 예측값에 대한 각 변수의 기여도를 유일하게 공정하게 분배합니다. 특히 트리 모델 전용 알고리즘인 <strong>TreeExplainer</strong>는 다항식 시간($O(TLD^2)$) 내에 정확한 섀플리 값을 산출하여, 전역적 요약 플롯(Summary plot), 의존성 플롯(Dependence plot), 그리고 개별 대출 심사를 설명하는 폭포수 플롯(Waterfall plot)과 의사결정 플롯(Decision plot)을 가능하게 합니다.
+                </p>
+            </section>
+
+            <!-- 4. Methods -->
+            <section id="methods">
+                <h2><i class="fa-solid fa-gears"></i> 4. 연구 방법론 (Methods)</h2>
+
+                <h3 id="methods-pipeline">4.1 NATE 4단계 연구 파이프라인</h3>
+                <p>
+                    NATE 프레임워크는 불균형 신용 데이터의 수집부터 모델 학습, 다각적 XAI 분석에 이르는 4단계 순차 아키텍처로 설계되었습니다:
+                </p>
+
+                <div class="arch-diagram">
+                    <h4 style="margin-bottom: 1rem;"><i class="fa-solid fa-diagram-project"></i> NATE 4단계 아키텍처 파이프라인</h4>
+                    <div class="flow-grid">
+                        <div class="flow-card">
+                            <span class="flow-badge">1단계</span>
+                            <h5>GMSC 데이터셋 수집 및 전처리</h5>
+                            <p>Kaggle GMSC 150,000건 데이터 수집, 결측치 중앙값 대체, 이상치 제거 및 정규화</p>
+                        </div>
+                        <div class="flow-card">
+                            <span class="flow-badge">2단계</span>
+                            <h5>단계적 리샘플링 적용</h5>
+                            <p>불균형 비율(IR)을 7%~50%로 단계별 제어하며 NearMiss 언더샘플링 vs SMOTE 오버샘플링 실시</p>
+                        </div>
+                        <div class="flow-card">
+                            <span class="flow-badge">3단계</span>
+                            <h5>분류 모델 예측 및 검증</h5>
+                            <p>모수(LR) 및 비모수(RF, GB, XGB) 모델 훈련, 5-fold 그리드 서치, 10-fold CV (AUC, MCC, F1)</p>
+                        </div>
+                        <div class="flow-card">
+                            <span class="flow-badge">4단계</span>
+                            <h5>TreeExplainer 기반 XAI 해석</h5>
+                            <p>전역 특성 중요도, 부분 의존성 상호작용, 폭포수/포스/의사결정 플롯을 통한 인과관계 규명</p>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>GMSC 데이터셋 세부 특성</h3>
+                <p>
+                    본 연구에서 활용된 <strong>Give Me Some Credit (GMSC)</strong> 데이터셋은 총 150,000개의 대출자 기록을 담고 있으며, 부도율이 약 6.68%(불균형 비율 IR = 13.96)에 달하는 심각한 불균형성을 보입니다.
+                </p>
+                <div class="table-wrapper">
+                    <table>
+                        <caption>표 2. NATE 연구에서 사용된 GMSC 데이터셋의 변수 명세</caption>
+                        <thead>
+                            <tr>
+                                <th>변수명 (Feature)</th>
+                                <th>변수 설명 (Description)</th>
+                                <th>데이터 타입</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>SeriousDlqin2yrs *</strong></td>
+                                <td>차주가 향후 2년 이내에 90일 이상 심각한 연체를 경험했는지 여부 (목표 레이블, 1=부도, 0=정상)</td>
+                                <td>이진 범주형 (Y/N)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>RevolvingUtilizationOfUnsecuredLines</strong></td>
+                                <td>신용카드 및 개인 신용대출 한도 대비 총 잔액 비율 (소진율)</td>
+                                <td>백분율 (연속형)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>age</strong></td>
+                                <td>대출 신청자의 만 나이 (연령)</td>
+                                <td>정수형 (Integer)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>NumberOfTime30-59DaysPastDueNotWorse</strong></td>
+                                <td>지난 2년 동안 30~59일간 연체되었으나 그 이상 악화되지 않은 횟수</td>
+                                <td>정수형 (Integer)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>DebtRatio</strong></td>
+                                <td>월 부채 상환액, 위자료, 생활비를 월 총소득으로 나눈 부채 비율</td>
+                                <td>백분율 (연속형)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>MonthlyIncome</strong></td>
+                                <td>차주의 월 소득 (결측치는 중앙값으로 대체)</td>
+                                <td>실수형 (Real)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>NumberOfOpenCreditLinesAndLoans</strong></td>
+                                <td>보유 중인 대출 및 신용카드 계좌 총 개수</td>
+                                <td>정수형 (Integer)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>NumberOfTimes90DaysLate</strong></td>
+                                <td>과거 90일 이상 심각한 연체를 범한 총 횟수</td>
+                                <td>정수형 (Integer)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>NumberRealEstateLoansOrLines</strong></td>
+                                <td>주택담보대출을 포함한 부동산 관련 대출 총 건수</td>
+                                <td>정수형 (Integer)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>NumberOfTime60-89DaysPastDueNotWorse</strong></td>
+                                <td>지난 2년 동안 60~89일간 연체되었으나 그 이상 악화되지 않은 횟수</td>
+                                <td>정수형 (Integer)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>NumberOfDependents</strong></td>
+                                <td>본인을 제외한 부양가족 수 (배우자, 자녀 등)</td>
+                                <td>정수형 (Integer)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 id="methods-resampling">4.2 리샘플링 전략 및 불균형 비율(IR) 단계적 제어</h3>
+                <p>
+                    연구팀은 불균형 비율(Imbalance Ratio, $IR = N_{majority} / N_{minority}$)의 단계적 변화가 모델 학습에 미치는 영향을 규명하기 위해, 소수 클래스(부도자)의 비율을 7%(원본)에서 13%, 24%, 33%, 50%(완전 균형)로 단계별로 조절하는 8개의 서브 데이터셋을 구축하였습니다.
+                </p>
+                <div class="table-wrapper">
+                    <table>
+                        <caption>표 3 & 표 4. 리샘플링 기법(NearMiss 언더샘플링 vs SMOTE 오버샘플링)에 따른 데이터셋 구성 변화</caption>
+                        <thead>
+                            <tr>
+                                <th>리샘플링 방식</th>
+                                <th>구분</th>
+                                <th>7% (원본 데이터)</th>
+                                <th>13% (IR = 6.67)</th>
+                                <th>24% (IR = 3.12)</th>
+                                <th>33% (IR = 2.00)</th>
+                                <th>50% (완전 균형, IR = 1.00)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td rowspan="3"><strong>NearMiss<br>(언더샘플링)</strong></td>
+                                <td>정상 샘플 수 (# Not defaulted)</td>
+                                <td class="text-right">139,974</td>
+                                <td class="text-right">66,840</td>
+                                <td class="text-right">31,331</td>
+                                <td class="text-right">20,052</td>
+                                <td class="text-right highlight-val">10,026</td>
+                            </tr>
+                            <tr>
+                                <td>부도 샘플 수 (# Defaulted)</td>
+                                <td class="text-right">10,026</td>
+                                <td class="text-right">10,026</td>
+                                <td class="text-right">10,026</td>
+                                <td class="text-right">10,026</td>
+                                <td class="text-right">10,026</td>
+                            </tr>
+                            <tr style="background: var(--surface-secondary);">
+                                <td>총 데이터 수 (Total)</td>
+                                <td class="text-right">150,000</td>
+                                <td class="text-right">76,866</td>
+                                <td class="text-right">41,357</td>
+                                <td class="text-right">30,078</td>
+                                <td class="text-right highlight-val">20,052 (86.6% 데이터 유실!)</td>
+                            </tr>
+                            <tr>
+                                <td rowspan="3"><strong>SMOTE<br>(오버샘플링)</strong></td>
+                                <td>정상 샘플 수 (# Not defaulted)</td>
+                                <td class="text-right">139,974</td>
+                                <td class="text-right">139,974</td>
+                                <td class="text-right">139,974</td>
+                                <td class="text-right">139,974</td>
+                                <td class="text-right">139,974 (100% 정보 보존)</td>
+                            </tr>
+                            <tr>
+                                <td>부도 샘플 수 (# Defaulted)</td>
+                                <td class="text-right">10,026</td>
+                                <td class="text-right">20,996</td>
+                                <td class="text-right">44,791</td>
+                                <td class="text-right">69,987</td>
+                                <td class="text-right highlight-val">139,974 (합성 증강)</td>
+                            </tr>
+                            <tr style="background: var(--surface-secondary);">
+                                <td>총 데이터 수 (Total)</td>
+                                <td class="text-right">150,000</td>
+                                <td class="text-right">160,970</td>
+                                <td class="text-right">184,765</td>
+                                <td class="text-right">209,961</td>
+                                <td class="text-right highlight-val">279,948 (정보 손실 제로)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 id="methods-models">4.3 분류 예측 모델 및 하이퍼파라미터 최적화</h3>
+                <p>
+                    모수 모델로는 <strong>로지스틱 회귀(LR)</strong>를 기준 벤치마크로 선정하였고, 비모수 모델로는 <strong>랜덤 포레스트(RF)</strong>, <strong>그래디언트 부스팅(GB)</strong>, <strong>eXtreme Gradient Boosting (XGB)</strong>을 학습시켰습니다.
+                </p>
+                <div class="table-wrapper">
+                    <table>
+                        <caption>표 6. 5-겹 교차 검증을 위한 모델별 하이퍼파라미터 탐색 공간</caption>
+                        <thead>
+                            <tr>
+                                <th>알고리즘</th>
+                                <th>하이퍼파라미터 (Hyperparameter)</th>
+                                <th>탐색 범위 (Search Space)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td rowspan="2"><strong>LR (로지스틱 회귀)</strong></td>
+                                <td>규제 패널티 (penalty)</td>
+                                <td>{ 'none', 'L1', 'L2', 'elasticnet' }</td>
+                            </tr>
+                            <tr>
+                                <td>최적화 알고리즘 (solver)</td>
+                                <td>{ 'newton-cg', 'lbfgs', 'liblinear' }</td>
+                            </tr>
+                            <tr>
+                                <td rowspan="5"><strong>RF (랜덤 포레스트)</strong></td>
+                                <td>트리 개수 (n_estimators)</td>
+                                <td>[100, 1000]</td>
+                            </tr>
+                            <tr>
+                                <td>최대 깊이 (max_depth)</td>
+                                <td>[1, 20]</td>
+                            </tr>
+                            <tr>
+                                <td>노드 분할 최소 샘플 (min_samples_split)</td>
+                                <td>{2, 5, 10}</td>
+                            </tr>
+                            <tr>
+                                <td>리프 노드 최소 샘플 (min_samples_leaf)</td>
+                                <td>{1, 2, 4, 8}</td>
+                            </tr>
+                            <tr>
+                                <td>부트스트랩 (bootstrap)</td>
+                                <td>{ 'True', 'False' }</td>
+                            </tr>
+                            <tr>
+                                <td rowspan="5"><strong>GB (그래디언트 부스팅)</strong></td>
+                                <td>트리 개수 (n_estimators)</td>
+                                <td>[100, 1000]</td>
+                            </tr>
+                            <tr>
+                                <td>학습률 (learning_rate)</td>
+                                <td>{ 0.01, 0.1 }</td>
+                            </tr>
+                            <tr>
+                                <td>최대 깊이 (max_depth)</td>
+                                <td>[1, 20]</td>
+                            </tr>
+                            <tr>
+                                <td>노드 분할/리프 최소 샘플</td>
+                                <td>min_samples_split: {2, 5, 10}, min_samples_leaf: {1, 2, 4, 8}</td>
+                            </tr>
+                            <tr>
+                                <td>서브샘플 비율 (subsample)</td>
+                                <td>{ 0.8, 1.0 }</td>
+                            </tr>
+                            <tr>
+                                <td rowspan="4"><strong>XGB (XGBoost)</strong></td>
+                                <td>트리 개수 / 학습률</td>
+                                <td>n_estimators: [100, 1000], learning_rate: { 0.01, 0.1 }</td>
+                            </tr>
+                            <tr>
+                                <td>최대 깊이 (max_depth)</td>
+                                <td>[1, 20]</td>
+                            </tr>
+                            <tr>
+                                <td>자식 노드 최소 가중치 (min_child_weight)</td>
+                                <td>{ 2, 5, 10 }</td>
+                            </tr>
+                            <tr>
+                                <td>샘플링 비율</td>
+                                <td>subsample: {0.8, 1.0}, colsample_bytree: {0.8, 1.0}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 id="methods-treeexplainer">4.4 TreeExplainer 기반 XAI 설명 프레임워크</h3>
+                <p>
+                    모델의 설명 가능성은 <strong>TreeExplainer</strong>를 통해 구현됩니다. 전통적인 선형 모델의 설명 공식인 가법적 특성 기여 모델을 트리 앙상블로 확장합니다:
+                </p>
+                <div class="formula-card">
+                    $$g(z') = \phi_0 + \sum_{j=1}^M \phi_j z'_j$$
+                </div>
+                <p>
+                    여기서 $\phi_0$는 기본 기대값(Base value, 모델의 전체 평균 예측 확률)이며, $\phi_j$는 $j$번째 입력 변수가 기본 기대값을 기준으로 예측치를 상향 또는 하향시키는 한계 기여도(Shapley Value)입니다. TreeExplainer는 트리의 각 리프 노드에 도달하는 조건부 기대값을 재귀적으로 추적하여 엄밀한 수학적 불변성을 충족합니다.
+                </p>
+            </section>
+
+            <!-- 5. Results -->
+            <section id="results">
+                <h2><i class="fa-solid fa-chart-line"></i> 5. 실험 및 결과 (Results)</h2>
+
+                <h3 id="results-baseline">5.1 원본 불균형 데이터셋에서의 모델 성능 한계</h3>
+                <p>
+                    리샘플링을 거치지 않은 원본 불균형 GMSC 데이터셋에서 다양한 분류 모델을 평가한 결과, <strong>단순 분류 정확도(Accuracy)는 성능 평가 지표로서 완전히 부적합함</strong>이 확인되었습니다.
+                </p>
+                <div class="table-wrapper">
+                    <table>
+                        <caption>표 5. 원본 불균형 GMSC 데이터셋(부도율 6.68%)에서의 분류 모델별 성능 비교</caption>
+                        <thead>
+                            <tr>
+                                <th>분류 모델</th>
+                                <th>정확도 (Accuracy)</th>
+                                <th>AUC</th>
+                                <th>MCC (매튜스 상관계수)</th>
+                                <th>F1-Score</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>LR (로지스틱 회귀)</strong></td>
+                                <td>0.9323</td>
+                                <td>0.7716</td>
+                                <td>0.0948</td>
+                                <td>0.0539</td>
+                            </tr>
+                            <tr>
+                                <td><strong>LDA (선형판별분석)</strong></td>
+                                <td>0.9325</td>
+                                <td>0.8018</td>
+                                <td>0.1042</td>
+                                <td>0.0599</td>
+                            </tr>
+                            <tr>
+                                <td><strong>KNN (k-최근접 이웃)</strong></td>
+                                <td>0.9310</td>
+                                <td>0.5901</td>
+                                <td>0.0787</td>
+                                <td>0.0525</td>
+                            </tr>
+                            <tr>
+                                <td><strong>DT (의사결정나무)</strong></td>
+                                <td>0.8941</td>
+                                <td>0.5955</td>
+                                <td>0.1819</td>
+                                0.2386
+                            </tr>
+                            <tr>
+                                <td><strong>NB (나이브 베이즈)</strong></td>
+                                <td>0.9311</td>
+                                <td>0.7749</td>
+                                <td>0.1451</td>
+                                <td>0.1170</td>
+                            </tr>
+                            <tr>
+                                <td><strong>RF (랜덤 포레스트)</strong></td>
+                                <td>0.9322</td>
+                                <td>0.8242</td>
+                                <td>0.2229</td>
+                                <td>0.2037</td>
+                            </tr>
+                            <tr>
+                                <td><strong>GB (그래디언트 부스팅)</strong></td>
+                                <td class="highlight-val">0.9343</td>
+                                <td class="highlight-val">0.8542</td>
+                                <td>0.2058</td>
+                                <td>0.1579</td>
+                            </tr>
+                            <tr>
+                                <td><strong>XGB (XGBoost)</strong></td>
+                                <td>0.9335</td>
+                                <td>0.8515</td>
+                                <td>0.2165</td>
+                                <td>0.1827</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Bayes Net (문헌 벤치마크 [47])</strong></td>
+                                <td>0.9450</td>
+                                <td>0.8550</td>
+                                <td>N/A</td>
+                                <td>N/A</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="callout warning">
+                    <div class="callout-title"><i class="fa-solid fa-triangle-exclamation"></i> 정확도 역설 (Accuracy Paradox)의 발견</div>
+                    <p style="margin-bottom:0;">
+                        모든 모델이 93% 이상의 높은 정확도를 보이지만, 실제 소수 클래스(부도자)를 식별하는 능력인 F1-Score와 MCC는 0.05~0.22 수준에 불과합니다. 즉, 모델이 거의 모든 사람을 '정상'으로 예측해 버리기 때문입니다. 따라서 불균형 신용 데이터에서는 <strong>AUC, MCC, F1-Score</strong>가 진정한 성능 평가 지표임이 확인됩니다.
+                    </p>
+                </div>
+
+                <h3 id="results-resampling">5.2 리샘플링 기법별 성능 비교: NearMiss vs SMOTE</h3>
+                <p>
+                    연구팀은 불균형 비율을 7%에서 50%까지 단계별로 조절하며 NearMiss(언더샘플링)와 SMOTE(오버샘플링)의 성능을 비교 분석하였습니다.
+                </p>
+                <div class="table-wrapper">
+                    <table>
+                        <caption>표 7. 다양한 불균형 비율(IR) 및 리샘플링 기법에 따른 모델별 성능 비교 (AUC, MCC, F1)</caption>
+                        <thead>
+                            <tr>
+                                <th>리샘플링 조건</th>
+                                <th>모델 (Classifier)</th>
+                                <th>최고 AUC (Best AUC)</th>
+                                <th>최고 MCC (Best MCC)</th>
+                                <th>최고 F1-Score (Best F1)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="background: var(--surface-secondary);">
+                                <td colspan="5"><strong>7% (원본 불균형, IR = 13.96)</strong></td>
+                            </tr>
+                            <tr>
+                                <td>원본 데이터 (None)</td>
+                                <td>LR / RF / GB / XGB</td>
+                                <td>0.7716 / 0.8242 / 0.8542 / 0.8515</td>
+                                <td>0.0948 / 0.2229 / 0.2058 / 0.2165</td>
+                                <td>0.0539 / 0.2037 / 0.1579 / 0.1827</td>
+                            </tr>
+                            <tr style="background: var(--surface-secondary);">
+                                <td colspan="5"><strong>13% 부도율 (IR = 6.67) - SMOTE 오버샘플링</strong></td>
+                            </tr>
+                            <tr>
+                                <td>SMOTE 13%</td>
+                                <td>LR</td>
+                                <td>0.7731</td>
+                                <td>0.1895</td>
+                                <td>0.1776</td>
+                            </tr>
+                            <tr>
+                                <td>SMOTE 13%</td>
+                                <td>RF / GB / XGB</td>
+                                <td>0.8829 / 0.8819 / 0.8863</td>
+                                <td>0.4386 / 0.4569 / 0.4536</td>
+                                <td>0.4604 / 0.4907 / 0.4769</td>
+                            </tr>
+                            <tr style="background: var(--surface-secondary);">
+                                <td colspan="5"><strong>24% 부도율 (IR = 3.12) - SMOTE 오버샘플링</strong></td>
+                            </tr>
+                            <tr>
+                                <td>SMOTE 24%</td>
+                                <td>LR</td>
+                                <td>0.7629</td>
+                                <td>0.2916</td>
+                                <td>0.3342</td>
+                            </tr>
+                            <tr>
+                                <td>SMOTE 24%</td>
+                                <td>RF / GB / XGB</td>
+                                <td>0.9080 / 0.9272 / 0.9275</td>
+                                <td>0.5969 / 0.6585 / 0.6540</td>
+                                <td>0.6807 / 0.7338 / 0.7302</td>
+                            </tr>
+                            <tr style="background: var(--surface-secondary);">
+                                <td colspan="5"><strong>33% 부도율 (IR = 2.00) - SMOTE 오버샘플링</strong></td>
+                            </tr>
+                            <tr>
+                                <td>SMOTE 33%</td>
+                                <td>LR</td>
+                                <td>0.7596</td>
+                                <td>0.3543</td>
+                                <td>0.4344</td>
+                            </tr>
+                            <tr>
+                                <td>SMOTE 33%</td>
+                                <td>RF / GB / XGB</td>
+                                <td>0.9287 / 0.9472 / 0.9471</td>
+                                <td>0.6976 / 0.7481 / 0.7479</td>
+                                <td>0.7892 / 0.8260 / 0.8258</td>
+                            </tr>
+                            <tr style="background: var(--surface-secondary);">
+                                <td colspan="5"><strong>50% 부도율 (완전 균형, IR = 1.00) - SMOTE 오버샘플링</strong></td>
+                            </tr>
+                            <tr>
+                                <td>SMOTE 50%</td>
+                                <td>LR (모수 모델)</td>
+                                <td>0.7497</td>
+                                <td>0.4939</td>
+                                <td>0.6558</td>
+                            </tr>
+                            <tr>
+                                <td>SMOTE 50%</td>
+                                <td>RF (비모수)</td>
+                                <td>0.9575</td>
+                                <td>0.7850</td>
+                                <td>0.8906</td>
+                            </tr>
+                            <tr>
+                                <td>SMOTE 50%</td>
+                                <td><strong>GB (비모수 - 최고 성능)</strong></td>
+                                <td class="highlight-val" style="font-size:1.05em;">0.9649</td>
+                                <td class="highlight-val" style="font-size:1.05em;">0.8104</td>
+                                <td class="highlight-val" style="font-size:1.05em;">0.9072</td>
+                            </tr>
+                            <tr>
+                                <td>SMOTE 50%</td>
+                                <td>XGB (비모수)</td>
+                                <td class="highlight-val">0.9637</td>
+                                <td class="highlight-val">0.8068</td>
+                                <td class="highlight-val">0.9056</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="table-wrapper">
+                    <table>
+                        <caption>표 9. 동일한 클래스 비율에서 오버샘플링(SMOTE)과 언더샘플링(NearMiss) 간의 성능 격차 (Over - Under)</caption>
+                        <thead>
+                            <tr>
+                                <th>소수 클래스 비율 (%)</th>
+                                <th>모델</th>
+                                <th>AUC 격차 ($\Delta$AUC)</th>
+                                <th>MCC 격차 ($\Delta$MCC)</th>
+                                <th>F1 격차 ($\Delta$F1)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td rowspan=\"4\"><strong>13% (IR = 6.67)</strong></td>
+                                <td>LR</td>
+                                <td>-0.0676</td>
+                                <td>-0.1544</td>
+                                <td>-0.1605</td>
+                            </tr>
+                            <tr>
+                                <td>RF</td>
+                                <td class=\"highlight-val\">+0.0267</td>
+                                <td class=\"highlight-val\">+0.0408</td>
+                                <td class=\"highlight-val\">+0.0473</td>
+                            </tr>
+                            <tr>
+                                <td>GB</td>
+                                <td class=\"highlight-val\">+0.0285</td>
+                                <td class=\"highlight-val\">+0.0537</td>
+                                <td class=\"highlight-val\">+0.0704</td>
+                            </tr>
+                            <tr>
+                                <td>XGB</td>
+                                <td class=\"highlight-val\">+0.0288</td>
+                                <td class=\"highlight-val\">+0.0478</td>
+                                <td class=\"highlight-val\">+0.0456</td>
+                            </tr>
+                            <tr>
+                                <td rowspan=\"4\"><strong>50% (완전 균형)</strong></td>
+                                <td>LR</td>
+                                <td>-0.1092</td>
+                                <td>-0.1852</td>
+                                <td>-0.0962</td>
+                            </tr>
+                            <tr>
+                                <td>RF</td>
+                                <td class=\"highlight-val\">+0.0202</td>
+                                <td class=\"highlight-val\">+0.0402</td>
+                                <td class=\"highlight-val\">+0.0283</td>
+                            </tr>
+                            <tr>
+                                <td>GB</td>
+                                <td class=\"highlight-val\">+0.0198</td>
+                                <td class=\"highlight-val\">+0.0598</td>
+                                <td class=\"highlight-val\">+0.0344</td>
+                            </tr>
+                            <tr>
+                                <td>XGB</td>
+                                <td class=\"highlight-val\">+0.0186</td>
+                                <td class=\"highlight-val\">+0.0562</td>
+                                <td class=\"highlight-val\">+0.0328</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="callout tip">
+                    <div class="callout-title"><i class="fa-solid fa-magnifying-glass-chart"></i> 핵심 결과 인사이트</div>
+                    <ul style="padding-left: 1.25rem; margin-bottom: 0;">
+                        <li><strong>SMOTE vs NearMiss 비교:</strong> 모든 비모수 앙상블 모델(RF, GB, XGB)에서 SMOTE 오버샘플링이 NearMiss 언더샘플링보다 일관되게 우수한 성능을 나타냈습니다. 언더샘플링 시 발생하는 다수 클래스 정보 소실이 모델 일반화 성능을 저해하기 때문입니다.</li>
+                        <li><strong>모수 모델(LR)의 역설:</strong> 로지스틱 회귀는 오버샘플링 시 오히려 AUC가 원본 0.7716에서 50% 균형 시 0.7497로 <strong>감소(-0.0219)</strong>하였습니다. 이는 LR의 선형 결정 경계가 복잡한 데이터 분포의 변화를 수용하지 못함을 증명합니다.</li>
+                        <li><strong>비모수 모델의 극적 도약:</strong> 그래디언트 부스팅(GB)은 SMOTE 50%에서 AUC <strong>0.9649</strong>, MCC <strong>0.8104</strong>, F1 <strong>0.9072</strong>를 달성하며 초기 원본 대비 AUC +0.11, F1 +0.75라는 경이적인 성능 향상을 기록했습니다.</li>
+                    </ul>
+                </div>
+
+                <h3 id="results-cwgan-comp">5.3 기존 벤치마크(cWGAN 기반) 대비 성능 및 연산 효율성</h3>
+                <p>
+                    선행 연구(Engelmann & Lessmann, 2021)의 조건부 와서스타인 GAN(cWGAN) 오버샘플링 기반 벤치마크 모델과 NATE 프레임워크의 최적 모델을 비교한 결과입니다.
+                </p>
+                <div class="table-wrapper">
+                    <table>
+                        <caption>표 8. cWGAN 벤치마크 대비 NATE 모델의 성능 및 학습 소요 시간 비교</caption>
+                        <thead>
+                            <tr>
+                                <th>평가 지표</th>
+                                <th>선행 연구 벤치마크 (cWGAN) [18]</th>
+                                <th>NATE: GB (SMOTE 50%)</th>
+                                <th>NATE: XGB (NearMiss 50%)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>AUC</strong></td>
+                                <td>0.8304</td>
+                                <td class="highlight-val">0.9649 (소요시간: 2,257.23초)</td>
+                                <td>0.9451 (소요시간: <strong>35.27초</strong>)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>MCC</strong></td>
+                                <td>N/A (보고 안 됨)</td>
+                                <td class="highlight-val">0.8104 (소요시간: 2,265.41초)</td>
+                                <td>0.7506 (소요시간: <strong>28.96초</strong>)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>F1-Score</strong></td>
+                                <td>N/A (보고 안 됨)</td>
+                                <td class="highlight-val">0.9072 (소요시간: 2,265.69초)</td>
+                                <td>0.8728 (소요시간: <strong>29.65초</strong>)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p>
+                    NATE 프레임워크의 GB(SMOTE) 모델은 기존 cWGAN 벤치마크(AUC 0.8304)를 <strong>+0.1345</strong>나 상회하는 압도적인 분류 정확도를 달성하였습니다. 또한 연산 효율성이 극도로 중요한 금융 환경에서는 XGB(NearMiss) 모델이 불과 <strong>35초</strong>만에 AUC 0.9451을 기록하여 탁월한 속도-성능 절충안을 제공함을 입증하였습니다.
+                </p>
+
+                <h3 id="results-shap">5.4 TreeExplainer를 통한 설명 가능성(XAI) 심층 분석</h3>
+                <p>
+                    NATE는 최적의 비모수 모델에 TreeExplainer를 결합하여, 단순 변수 순위 매기기를 넘어선 정교한 인과관계 분석 체계를 제공합니다:
+                </p>
+                <ul style="padding-left: 1.5rem; margin-bottom: 1.25rem;">
+                    <li style="margin-bottom: 0.6rem;"><strong>전역적 특성 중요도 (Beeswarm Summary Plot):</strong> 부도 예측에 가장 강력한 영향을 미치는 핵심 변수는 <code>RevolvingUtilizationOfUnsecuredLines</code>(신용 한도 소진율), <code>age</code>(차주 연령), <code>DebtRatio</code>(부채비율), <code>NumberOfTimes90DaysLate</code>(90일 이상 연체 횟수) 순으로 나타났습니다. 특히 높은 신용 한도 소진율(적색 점)은 높은 양(+)의 SHAP 값을 보여 부도 확률을 급격히 증가시키는 반면, 고연령(적색 점)은 음(-)의 SHAP 값을 보여 부도 확률을 안정적으로 낮추었습니다.</li>
+                    <li style="margin-bottom: 0.6rem;"><strong>부분 의존성 및 상호작용 (Dependence Plot):</strong> <code>RevolvingUtilizationOfUnsecuredLines</code>와 <code>age</code> 간의 상호작용 분석 결과, 연령이 낮을수록 신용카드 한도 소진율 증가에 따른 부도 위험 민감도가 훨씬 가파르게 증가하는 비선형적 상호작용을 명확히 규명하였습니다.</li>
+                    <li><strong>개별 대출 심사 사례 설명 (Waterfall & Force & Decision Plot):</strong> 특정 부도 차주의 판정 이유를 추적한 결과, 기본 베이스라인 확률(0.06)에서 출발하여 '신용 한도 소진율 0.7956 (+0.42)', '30-59일 연체 1회 (+0.18)' 등의 요인이 누적 기여하여 최종 부도 확률(0.78)로 도출되는 과정을 투명하게 시각화하였습니다. 반면 부양가족 수 0명, 낮은 부채비율 등은 대출 승인 방향으로 작용했음이 정확히 분해되었습니다.</li>
+                </ul>
+            </section>
+
+            <!-- 6. Discussion -->
+            <section id="discussion">
+                <h2><i class="fa-solid fa-comments"></i> 6. 고찰 및 논의 (Discussion)</h2>
+                <p>
+                    본 연구의 결과는 금융 머신러닝 실무에 매우 중요한 세 가지 교훈을 제공합니다:
+                </p>
+                <ol style="padding-left: 1.5rem; margin-bottom: 1.25rem;">
+                    <li style="margin-bottom: 0.6rem;"><strong>언더샘플링의 위험성과 오버샘플링의 필연성:</strong> 다수 클래스를 삭제하는 NearMiss는 데이터의 80% 이상을 유실시킴으로써 표본의 대표성을 왜곡합니다. 반면 SMOTE 오버샘플링은 모든 다수 클래스 정보를 유지한 채 소수 클래스 매니폴드를 확장하므로 비모수 모델의 학습에 훨씬 안전하고 강력합니다.</li>
+                    <li style="margin-bottom: 0.6rem;"><strong>모수 모델의 성능 한계 극복:</strong> 전통적인 로지스틱 회귀는 해석이 쉽다는 이유로 금융권에서 널리 쓰여 왔으나, 데이터 불균형을 리샘플링으로 해소하더라도 비선형 상호작용을 스스로 학습하지 못해 AUC 0.77의 한계를 벗어나지 못했습니다.</li>
+                    <li><strong>정확도와 설명 가능성의 트레이드오프 종식:</strong> "비모수 모델은 정확하지만 설명할 수 없다"는 통념은 XAI 프레임워크(TreeExplainer)를 통해 완전히 반박되었습니다. 비모수 앙상블은 로지스틱 회귀보다 훨씬 정교한 비선형 특성 기여도와 조건부 상호작용, 개별 대출 심사 소명 자료를 제공할 수 있습니다.</li>
+                </ol>
+            </section>
+
+            <!-- 7. Conclusion -->
+            <section id="conclusion">
+                <h2><i class="fa-solid fa-flag-checkered"></i> 7. 결론 (Conclusion)</h2>
+                <p>
+                    본 논문은 불균형 신용 평가 데이터셋의 본질적 과제를 해결하기 위한 <strong>NATE(Non-pArameTric approach for Explainable credit scoring)</strong> 프레임워크를 제안하고 실증 분석을 수행하였습니다.
+                </p>
+                <p>
+                    연구 결과, 비모수 트리 기반 앙상블 모델(Random Forest, Gradient Boosting, XGBoost)에 SMOTE 오버샘플링을 결합하고 불균형 비율을 단계적으로 최적화했을 때, 로지스틱 회귀 및 선행 cWGAN 벤치마크를 현저히 능가하는 최고의 분류 성능(GB: AUC 0.9649, F1 0.9072)을 달성할 수 있음을 입증하였습니다.
+                </p>
+                <p>
+                    동시에 SHAP TreeExplainer를 통해 모수 모델보다 더 풍부하고 신뢰성 높은 전역적·국소적 판정 근거를 제공함으로써, 현대 금융기관이 엄격한 금융 규제와 설명 책임(Accountability)을 완벽하게 준수하면서도 대출 손실률을 극소화할 수 있는 강력한 실천적 프레임워크를 제시하였습니다.
+                </p>
+            </section>
+
+            <!-- 8. References -->
+            <section id="references">
+                <h2><i class="fa-solid fa-list"></i> 8. 주요 참고문헌 (References)</h2>
+                <ol style="padding-left: 1.5rem; font-size: 0.88rem; color: var(--text-muted); line-height: 1.7;">
+                    <li>Anderson, R. <em>The credit scoring toolkit: theory and practice for retail credit risk management and decision automation</em>. Oxford University Press; 2007.</li>
+                    <li>Han, S., Jung, H., Yoo, P. D., Provetti, A. & Cali, A. NOTE: non-parametric oversampling technique for explainable credit scoring. <em>Scientific Reports</em> 14:26070 (2024).</li>
+                    <li>Brown, I. & Mues, C. An experimental comparison of classification algorithms for imbalanced credit scoring. <em>Expert Systems with Applications</em> 39(3):3446–3453 (2012).</li>
+                    <li>Lundberg, S. M. et al. From local explanations to global understanding with explainable AI for trees. <em>Nature Machine Intelligence</em> 2(1):56–67 (2020).</li>
+                    <li>Chawla, N. V., Bowyer, K. W., Hall, L. O. & Kegelmeyer, W. P. SMOTE: synthetic minority over-sampling technique. <em>JAIR</em> 16:321–357 (2002).</li>
+                    <li>Mani, I. & Zhang, I. kNN approach to unbalanced data distributions: a case study involving information extraction. In <em>ICML Workshop on Learning from Imbalanced Datasets</em> (2003).</li>
+                    <li>Engelmann, J. & Lessmann, S. Conditional Wasserstein GAN-based oversampling of tabular data for imbalanced learning. <em>Expert Systems with Applications</em> 174:114582 (2021).</li>
+                    <li>Chen, T. & Guestrin, C. XGBoost: A scalable tree boosting system. In <em>ACM SIGKDD</em> 785–794 (2016).</li>
+                    <li>Bussmann, N., Giudici, P., Marinelli, D. & Papenbrock, J. Explainable machine learning in credit risk management. <em>Computational Economics</em> 57(1):203–216 (2021).</li>
+                    <li>Kaggle. Give Me Some Credit Competition Dataset (2011). Available: <a href="https://kaggle.com/competitions/GiveMeSomeCredit" target="_blank" rel="noopener">kaggle.com/competitions/GiveMeSomeCredit</a>.</li>
+                </ol>
+            </section>
+
+            <footer>
+                <p>&copy; 2024-2026 NATE 논문 한국어 완역본 &middot; 원저자: Seongil Han, Haemin Jung</p>
+                <p style="margin-top:0.3rem;">PLOS ONE (2024) 19(12): e0316454 &middot; Generated for Academic Study and Research Convenience</p>
+            </footer>
+        </main>
+    </div>
+
+    <!-- Interactive Scripts -->
+    <script>
+        // KaTeX Auto-render
+        document.addEventListener("DOMContentLoaded", function() {
+            renderMathInElement(document.body, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '$', right: '$', display: false}
+                ],
+                throwOnError : false
+            });
+        });
+
+        // Theme Toggle (Dark / Light)
+        const btnTheme = document.getElementById('btn-theme');
+        const currentTheme = localStorage.getItem('theme') || 'light';
+        if (currentTheme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            btnTheme.innerHTML = '<i class="fa-solid fa-sun"></i>';
+        }
+
+        btnTheme.addEventListener('click', () => {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            if (isDark) {
+                document.documentElement.removeAttribute('data-theme');
+                localStorage.setItem('theme', 'light');
+                btnTheme.innerHTML = '<i class="fa-solid fa-moon"></i>';
+            } else {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+                btnTheme.innerHTML = '<i class="fa-solid fa-sun"></i>';
+            }
+        });
+
+        // Font Size Adjustments
+        let currentFontSize = 16;
+        document.getElementById('btn-font-inc').addEventListener('click', () => {
+            if (currentFontSize < 22) {
+                currentFontSize += 1;
+                document.documentElement.style.setProperty('--font-size', currentFontSize + 'px');
+            }
+        });
+        document.getElementById('btn-font-dec').addEventListener('click', () => {
+            if (currentFontSize > 13) {
+                currentFontSize -= 1;
+                document.documentElement.style.setProperty('--font-size', currentFontSize + 'px');
+            }
+        });
+
+        // Scrollspy for Sidebar TOC
+        const sections = document.querySelectorAll('section, h3[id]');
+        const tocLinks = document.querySelectorAll('.toc-link');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (window.scrollY >= sectionTop - 120) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            tocLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+

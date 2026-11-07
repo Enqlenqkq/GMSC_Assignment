@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>설명 가능한 신용 평가 논문 한국어 완역 포털 (NOTE & NATE)</title>
+    <!-- Pretendard Font -->
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --primary-light: #eff6ff;
+            --accent: #0284c7;
+            --secondary: #8b5cf6;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --surface-secondary: #f1f5f9;
+            --border: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #475569;
+            --text-light: #94a3b8;
+            --header-height: 64px;
+        }
+
+        [data-theme="dark"] {
+            --primary: #3b82f6;
+            --primary-dark: #60a5fa;
+            --primary-light: #1e293b;
+            --accent: #38bdf8;
+            --secondary: #a78bfa;
+            --bg: #0b0f19;
+            --surface: #131b2e;
+            --surface-secondary: #1e293b;
+            --border: #243048;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --text-light: #64748b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+            font-size: 16px;
+            line-height: 1.7;
+            color: var(--text-main);
+            background-color: var(--bg);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Top Navigation */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: var(--header-height);
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2rem;
+            z-index: 1000;
+        }
+        [data-theme="dark"] .navbar {
+            background: rgba(19, 27, 46, 0.92);
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 800;
+            font-size: 1.15rem;
+            color: var(--text-main);
+            text-decoration: none;
+        }
+
+        .nav-brand i {
+            color: var(--primary);
+            font-size: 1.3rem;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .nav-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 550;
+            font-size: 0.95rem;
+            padding: 0.45rem 0.9rem;
+            border-radius: 8px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: var(--primary);
+            background: var(--primary-light);
+        }
+
+        .btn-theme {
+            background: var(--surface-secondary);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            width: 38px;
+            height: 38px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-theme:hover {
+            background: var(--border);
+            color: var(--primary);
+        }
+
+        /* Container */
+        .container {
+            max-width: 1200px;
+            margin: calc(var(--header-height) + 2.5rem) auto 4rem;
+            padding: 0 1.5rem;
+        }
+
+        /* Hero Banner */
+        .hero {
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+            border: 1px solid rgba(37, 99, 235, 0.2);
+            border-radius: 20px;
+            padding: 3rem 2.5rem;
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--primary-light);
+            color: var(--primary);
+            border: 1px solid rgba(37, 99, 235, 0.3);
+            padding: 0.35rem 0.9rem;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 650;
+            margin-bottom: 1.25rem;
+        }
+
+        .hero-title {
+            font-size: 2.5rem;
+            font-weight: 850;
+            line-height: 1.3;
+            margin-bottom: 1rem;
+            color: var(--text-main);
+            letter-spacing: -0.02em;
+        }
+
+        .hero-desc {
+            font-size: 1.15rem;
+            color: var(--text-muted);
+            max-width: 800px;
+            margin: 0 auto;
+            word-break: keep-all;
+        }
+
+        /* Paper Cards Grid */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3.5rem;
+        }
+
+        .paper-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2.2rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .paper-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+            border-color: var(--primary);
+        }
+
+        .card-tag {
+            display: inline-block;
+            font-size: 0.78rem;
+            font-weight: 700;
+            padding: 0.25rem 0.65rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            width: fit-content;
+        }
+        .tag-note {
+            background: #e0f2fe;
+            color: #0369a1;
+        }
+        .tag-nate {
+            background: #ede9fe;
+            color: #6d28d9;
+        }
+        [data-theme="dark"] .tag-note {
+            background: #0c4a6e;
+            color: #7dd3fc;
+        }
+        [data-theme="dark"] .tag-nate {
+            background: #4c1d95;
+            color: #ddd6fe;
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            line-height: 1.35;
+            color: var(--text-main);
+        }
+
+        .card-en-title {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            margin-bottom: 1.2rem;
+            font-style: italic;
+        }
+
+        .card-meta {
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            margin-bottom: 1.2rem;
+            line-height: 1.6;
+            padding-bottom: 1.2rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .card-meta span {
+            display: block;
+            margin-bottom: 0.3rem;
+        }
+
+        .card-summary {
+            font-size: 0.95rem;
+            color: var(--text-main);
+            margin-bottom: 1.5rem;
+            word-break: keep-all;
+            flex-grow: 1;
+        }
+
+        .highlights {
+            background: var(--surface-secondary);
+            border-radius: 10px;
+            padding: 1rem 1.2rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.88rem;
+        }
+
+        .highlights-title {
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 0.4rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .highlights ul {
+            padding-left: 1.2rem;
+            margin-bottom: 0;
+            color: var(--text-muted);
+        }
+
+        .highlights li {
+            margin-bottom: 0.3rem;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: auto;
+        }
+
+        .btn-read {
+            flex: 1;
+            background: var(--primary);
+            color: white;
+            text-decoration: none;
+            padding: 0.75rem 1.2rem;
+            border-radius: 10px;
+            font-weight: 650;
+            font-size: 0.95rem;
+            text-align: center;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+        .btn-read:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-pdf {
+            background: var(--surface-secondary);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            text-decoration: none;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: all 0.2s;
+        }
+        .btn-pdf:hover {
+            background: var(--border);
+            color: var(--primary);
+        }
+
+        /* Section Headings */
+        .section-header {
+            margin-bottom: 1.5rem;
+        }
+
+        .section-title {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .section-subtitle {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+        }
+
+        /* Comparison Table */
+        .table-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.75rem;
+            margin-bottom: 3.5rem;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.92rem;
+        }
+
+        th {
+            background: var(--surface-secondary);
+            color: var(--text-main);
+            font-weight: 700;
+            padding: 0.85rem 1rem;
+            border-bottom: 2px solid var(--border);
+            text-align: left;
+        }
+
+        td {
+            padding: 0.85rem 1rem;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-main);
+            vertical-align: top;
+        }
+
+        tr:hover {
+            background: var(--primary-light);
+        }
+
+        .col-metric {
+            font-weight: 700;
+            width: 18%;
+            background: rgba(0, 0, 0, 0.015);
+        }
+        [data-theme="dark"] .col-metric {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .badge-pill {
+            display: inline-block;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            margin-right: 0.4rem;
+        }
+        .pill-blue { background: #dbeafe; color: #1e40af; }
+        .pill-purple { background: #ede9fe; color: #5b21b6; }
+        .pill-green { background: #d1fae5; color: #065f46; }
+
+        /* Footer */
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 2.5rem 0;
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--text-light);
+        }
+
+        @media (max-width: 900px) {
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+            .hero-title {
+                font-size: 1.85rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Navigation -->
+    <header class="navbar">
+        <a href="index.html" class="nav-brand">
+            <i class="fa-solid fa-scale-balanced"></i>
+            <span>설명 가능한 신용 평가 논문 번역 포털</span>
+        </a>
+        <nav class="nav-links">
+            <a href="index.html" class="nav-link active"><i class="fa-solid fa-house"></i> 포털 홈</a>
+            <a href="NOTE_korean.html" class="nav-link"><i class="fa-solid fa-file-lines"></i> NOTE 논문</a>
+            <a href="NATE_korean.html" class="nav-link"><i class="fa-solid fa-file-lines"></i> NATE 논문</a>
+        </nav>
+        <button class="btn-theme" id="btn-theme" title="다크 모드 전환"><i class="fa-solid fa-moon"></i></button>
+    </header>
+
+    <div class="container">
+        <!-- Hero Banner -->
+        <section class="hero">
+            <div class="hero-badge"><i class="fa-solid fa-flask-vial"></i> USW 알고리즘 분석 &middot; 금융 AI 핵심 논문</div>
+            <h1 class="hero-title">불균형 클래스 신용 평가 & XAI 핵심 논문 연구</h1>
+            <p class="hero-desc">
+                금융 신용 평가(Credit Scoring)의 최대 난제인 <strong>극심한 클래스 불균형</strong>과 <strong>블랙박스 인공지능의 설명 책임(Explainability)</strong>을 비모수 모델과 딥러닝 리샘플링으로 극복한 한성일·정해민 교수 연구진의 핵심 논문 2편을 완벽하게 번역하여 제공합니다.
+            </p>
+        </section>
+
+        <!-- Paper Cards Grid -->
+        <div class="cards-grid">
+            <!-- Card 1: NOTE -->
+            <div class="paper-card">
+                <div>
+                    <span class="card-tag tag-note"><i class="fa-solid fa-certificate"></i> Scientific Reports (Nature PG, 2024)</span>
+                    <h2 class="card-title">NOTE: 설명 가능한 신용 평가를 위한 비모수 오버샘플링 기법</h2>
+                    <div class="card-en-title">NOTE: non-parametric oversampling technique for explainable credit scoring</div>
+                    
+                    <div class="card-meta">
+                        <span><strong><i class="fa-solid fa-user-pen"></i> 저자:</strong> 한성일, 정해민, Paul D. Yoo, Alessandro Provetti, Andrea Cali</span>
+                        <span><strong><i class="fa-solid fa-building-columns"></i> 기관:</strong> 런던대 버크벡 칼리지 &middot; 한국교통대학교</span>
+                        <span><strong><i class="fa-solid fa-link"></i> DOI:</strong> 10.1038/s41598-024-78055-5</span>
+                    </div>
+
+                    <p class="card-summary">
+                        비모수 적층 오토인코더(NSA)로 비선형 잠재 특징을 추출하고, Lipschitz 제약 및 보조 분류기 손실(AC-Loss)을 갖춘 cWGAN으로 고품질 소수 클래스를 오버샘플링한 후, SHAP 기반 TreeExplainer/LinearExplainer로 투명하게 설명하는 SOTA 프레임워크입니다.
+                    </p>
+
+                    <div class="highlights">
+                        <div class="highlights-title"><i class="fa-solid fa-chart-line"></i> 주요 실험 성과</div>
+                        <ul>
+                            <li>HE(Home Equity) 및 GMSC 데이터셋에서 SOTA 오버샘플링 달성</li>
+                            <li>Extra Trees(ET) 분류기에서 <strong>AUC 0.9913 (HE), 0.9831 (GMSC)</strong> 기록</li>
+                            <li>기존 벤치마크 및 DeepSMOTE, ADS-GAN 대비 통계적 유의성(p < 0.05) 검증 완료</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="card-actions">
+                    <a href="NOTE_korean.html" class="btn-read"><i class="fa-solid fa-book-open"></i> 한국어 완역본 읽기</a>
+                    <a href="NOTE.pdf" target="_blank" class="btn-pdf"><i class="fa-solid fa-file-pdf"></i> 원본 PDF</a>
+                </div>
+            </div>
+
+            <!-- Card 2: NATE -->
+            <div class="paper-card">
+                <div>
+                    <span class="card-tag tag-nate"><i class="fa-solid fa-certificate"></i> PLOS ONE (2024.12.31)</span>
+                    <h2 class="card-title">NATE: 불균형 클래스 신용 평가를 위한 비모수적 설명 가능 접근법</h2>
+                    <div class="card-en-title">NATE: Non-pArameTric approach for Explainable credit scoring on imbalanced class</div>
+                    
+                    <div class="card-meta">
+                        <span><strong><i class="fa-solid fa-user-pen"></i> 저자:</strong> 한성일, 정해민 (교신저자)</span>
+                        <span><strong><i class="fa-solid fa-building-columns"></i> 기관:</strong> 런던대 버크벡 칼리지 &middot; 한국교통대학교</span>
+                        <span><strong><i class="fa-solid fa-link"></i> DOI:</strong> 10.1371/journal.pone.0316454</span>
+                    </div>
+
+                    <p class="card-summary">
+                        150,000건의 GMSC 데이터셋에서 불균형 비율(IR)을 단계별(7%~50%)로 제어하며 언더샘플링(NearMiss)과 오버샘플링(SMOTE)의 영향을 비교하고, 모수(LR) vs 비모수(RF, GB, XGB) 모델 간 성능 및 TreeExplainer 해석력을 종합 비교 실증한 연구입니다.
+                    </p>
+
+                    <div class="highlights">
+                        <div class="highlights-title"><i class="fa-solid fa-chart-line"></i> 주요 실험 성과</div>
+                        <ul>
+                            <li>언더샘플링(NearMiss)의 치명적 정보 유실 입증 (데이터의 86.6% 폐기)</li>
+                            <li>SMOTE 50% 균형 시 Gradient Boosting <strong>AUC 0.9649, F1 0.9072</strong> 달성</li>
+                            <li>선행 cWGAN 벤치마크(AUC 0.8304) 대비 +0.1345 대폭 향상</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="card-actions">
+                    <a href="NATE_korean.html" class="btn-read"><i class="fa-solid fa-book-open"></i> 한국어 완역본 읽기</a>
+                    <a href="NATE.pdf" target="_blank" class="btn-pdf"><i class="fa-solid fa-file-pdf"></i> 원본 PDF</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comprehensive Comparison Table -->
+        <section class="section-header">
+            <h2 class="section-title"><i class="fa-solid fa-code-compare"></i> 두 논문 심층 비교 매트릭스 (Comparative Analysis)</h2>
+            <div class="section-subtitle">NOTE와 NATE의 핵심 연구 질문, 알고리즘 구조, 리샘플링 전략 및 실험 결과를 한눈에 비교합니다.</div>
+        </section>
+
+        <div class="table-card">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="col-metric">비교 항목</th>
+                        <th style="width: 41%;">NOTE 논문 (Nature Scientific Reports)</th>
+                        <th style="width: 41%;">NATE 논문 (PLOS ONE)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="col-metric">핵심 연구 주제</td>
+                        <td><strong>비선형 잠재 특징 추출 + 적대적 생성 신경망(GAN) 기반 오버샘플링</strong>을 통한 신용 평가 불균형 해소 및 XAI</td>
+                        <td><strong>불균형 비율(IR) 변화 및 리샘플링 전략(언더샘플링 vs 오버샘플링)</strong>에 따른 모수/비모수 모델 성능 및 설명 가능성 비교</td>
+                    </tr>
+                    <tr>
+                        <td class="col-metric">제안 아키텍처</td>
+                        <td><span class="badge-pill pill-blue">NOTE</span> NSA(오토인코더) + cWGAN-GP(보조 분류기 손실) + XAI</td>
+                        <td><span class="badge-pill pill-purple">NATE</span> 단계적 리샘플링(SMOTE/NearMiss) + 비모수 앙상블(RF, GB, XGB) + TreeExplainer</td>
+                    </tr>
+                    <tr>
+                        <td class="col-metric">비선형 특징 처리</td>
+                        <td><strong>비모수 적층 오토인코더(NSA)</strong>로 잠재 벡터를 생성하여 원본 데이터와 연결(Concatenate)</td>
+                        <td>비모수 트리 앙상블 알고리즘(GB, XGB)의 고유한 비선형 분할 능력을 활용</td>
+                    </tr>
+                    <tr>
+                        <td class="col-metric">소수 클래스 증강 방식</td>
+                        <td><strong>cWGAN-GP (조건부 와서스타인 GAN)</strong> + Gumbel-Softmax(범주형) + AC 손실</td>
+                        <td><strong>SMOTE (선형 보간 기반 오버샘플링)</strong> vs <strong>NearMiss-1,2,3 (KNN 기반 언더샘플링)</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="col-metric">활용 데이터셋</td>
+                        <td><strong>2개 데이터셋:</strong><br>1. Home Equity (HE, 5,960건, IR 4.017)<br>2. Give Me Some Credit (GMSC, 150,000건, IR 13.961)</td>
+                        <td><strong>1개 대규모 데이터셋:</strong><br>Give Me Some Credit (GMSC, 150,000건, IR 13.961 단계적 비율 제어)</td>
+                    </tr>
+                    <tr>
+                        <td class="col-metric">주요 비교 대상</td>
+                        <td>리샘플링 없음(None), ADS-GAN, DeepSMOTE, rSVD, Engelmann & Lessmann(2021) cWGAN 벤치마크</td>
+                        <td>원래 불균형 데이터, NearMiss-1/2/3 언더샘플링, SMOTE 오버샘플링, 로지스틱 회귀(LR), Naive Bayes, Bayes Net</td>
+                    </tr>
+                    <tr>
+                        <td class="col-metric">최고 달성 성능</td>
+                        <td><strong>Extra Trees (ET):</strong><br>&bull; HE 데이터셋 AUC: <strong style="color:var(--primary);">0.9913</strong><br>&bull; GMSC 데이터셋 AUC: <strong style="color:var(--primary);">0.9831</strong></td>
+                        <td><strong>Gradient Boosting (GB):</strong><br>&bull; SMOTE 50% 균형 시 AUC: <strong style="color:var(--secondary);">0.9649</strong><br>&bull; F1-Score: <strong>0.9072</strong>, MCC: <strong>0.8104</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="col-metric">통계적 유의성 검정</td>
+                        <td>프리드먼 검정(Friedman test, p < 0.05) & 네메니 사후 검정(Nemenyi test) 완료</td>
+                        <td>불균형 비율(7% &rarr; 50%) 단계별 성능 증가 추세 및 모델 간 격차 검증</td>
+                    </tr>
+                    <tr>
+                        <td class="col-metric">설명 가능성 (XAI)</td>
+                        <td>TreeExplainer (ET, RF, GB) 및 LinearExplainer (LR) &rarr; 전역 중요도 및 개별 판정 근거</td>
+                        <td>TreeExplainer &rarr; 전역 요약, 특성 상호작용 의존성 플롯, 개별 Waterfall/Force/Decision 플롯 완비</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <footer>
+            <p>&copy; 2024-2026 설명 가능한 신용 평가 논문 번역 포털 &middot; 수원대학교 알고리즘 분석 과제 연구 자료</p>
+            <p style="margin-top:0.4rem;">원본 논문: Scientific Reports (NOTE) &middot; PLOS ONE (NATE) | 저자: 성일 한(Seongil Han), 해민 정(Haemin Jung) 외</p>
+        </footer>
+    </div>
+
+    <script>
+        // Theme Toggle (Dark / Light)
+        const btnTheme = document.getElementById('btn-theme');
+        const currentTheme = localStorage.getItem('theme') || 'light';
+        if (currentTheme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            btnTheme.innerHTML = '<i class="fa-solid fa-sun"></i>';
+        }
+
+        btnTheme.addEventListener('click', () => {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            if (isDark) {
+                document.documentElement.removeAttribute('data-theme');
+                localStorage.setItem('theme', 'light');
+                btnTheme.innerHTML = '<i class="fa-solid fa-moon"></i>';
+            } else {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+                btnTheme.innerHTML = '<i class="fa-solid fa-sun"></i>';
+            }
+        });
+    </script>
+</body>
+</html>
+

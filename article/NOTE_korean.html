@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOTE: 설명 가능한 신용 평가를 위한 비모수 오버샘플링 기법 (한국어 번역)</title>
+    <!-- Pretendard Font -->
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- KaTeX -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --primary-light: #eff6ff;
+            --primary-border: #bfdbfe;
+            --accent: #0d9488;
+            --accent-light: #f0fdfa;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --surface-secondary: #f1f5f9;
+            --border: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #475569;
+            --text-light: #94a3b8;
+            --code-bg: #f1f5f9;
+            --sidebar-width: 290px;
+            --header-height: 64px;
+            --font-size: 16px;
+        }
+
+        [data-theme="dark"] {
+            --primary: #3b82f6;
+            --primary-dark: #60a5fa;
+            --primary-light: #1e293b;
+            --primary-border: #3b82f640;
+            --accent: #14b8a6;
+            --accent-light: #134e4a30;
+            --bg: #0b0f19;
+            --surface: #131b2e;
+            --surface-secondary: #1e293b;
+            --border: #243048;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --text-light: #64748b;
+            --code-bg: #1e293b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+            font-size: var(--font-size);
+            line-height: 1.85;
+            color: var(--text-main);
+            background-color: var(--bg);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Top Navigation */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: var(--header-height);
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.5rem;
+            z-index: 1000;
+        }
+        [data-theme="dark"] .navbar {
+            background: rgba(19, 27, 46, 0.92);
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--text-main);
+            text-decoration: none;
+        }
+
+        .nav-brand .badge {
+            background: var(--primary);
+            color: white;
+            font-size: 0.75rem;
+            padding: 0.2rem 0.55rem;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .nav-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.92rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .nav-link:hover {
+            color: var(--primary);
+            background: var(--primary-light);
+        }
+        .nav-link.active {
+            color: var(--primary);
+            background: var(--primary-light);
+            font-weight: 650;
+        }
+
+        .nav-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-ctrl {
+            background: var(--surface-secondary);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-ctrl:hover {
+            background: var(--border);
+            color: var(--primary);
+        }
+
+        /* Layout */
+        .layout-container {
+            display: flex;
+            margin-top: var(--header-height);
+            min-height: calc(100vh - var(--header-height));
+        }
+
+        /* Sidebar TOC */
+        .sidebar {
+            width: var(--sidebar-width);
+            position: fixed;
+            top: var(--header-height);
+            bottom: 0;
+            left: 0;
+            overflow-y: auto;
+            padding: 1.5rem 1rem;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            z-index: 900;
+        }
+
+        .toc-title {
+            font-size: 0.82rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-light);
+            margin-bottom: 0.75rem;
+            padding-left: 0.5rem;
+        }
+
+        .toc-menu {
+            list-style: none;
+        }
+
+        .toc-item {
+            margin-bottom: 0.25rem;
+        }
+
+        .toc-link {
+            display: block;
+            padding: 0.45rem 0.65rem;
+            border-radius: 6px;
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: all 0.2s;
+            line-height: 1.45;
+        }
+        .toc-link:hover {
+            color: var(--primary);
+            background: var(--surface-secondary);
+        }
+        .toc-link.active {
+            color: var(--primary);
+            background: var(--primary-light);
+            font-weight: 650;
+            border-left: 3px solid var(--primary);
+            border-radius: 0 6px 6px 0;
+        }
+
+        .toc-sublink {
+            padding-left: 1.5rem;
+            font-size: 0.82rem;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 2.5rem 3.5rem;
+            max-width: 1120px;
+        }
+
+        /* Header / Meta Card */
+        .paper-header {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 2.5rem;
+            margin-bottom: 2.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+        }
+
+        .journal-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: #e0f2fe;
+            color: #0369a1;
+            padding: 0.35rem 0.85rem;
+            border-radius: 9999px;
+            font-size: 0.82rem;
+            font-weight: 650;
+            margin-bottom: 1.25rem;
+        }
+        [data-theme="dark"] .journal-badge {
+            background: #0c4a6e;
+            color: #7dd3fc;
+        }
+
+        .paper-title {
+            font-size: 2.2rem;
+            font-weight: 800;
+            line-height: 1.35;
+            color: var(--text-main);
+            margin-bottom: 0.6rem;
+            letter-spacing: -0.02em;
+        }
+
+        .paper-subtitle {
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+        }
+
+        .authors-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.2rem;
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            margin-bottom: 1.25rem;
+            padding-bottom: 1.25rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .author-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.2rem;
+            font-size: 0.88rem;
+            color: var(--text-muted);
+        }
+
+        .meta-item strong {
+            color: var(--text-main);
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        /* Key Takeaway Box */
+        .takeaway-card {
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(13, 148, 136, 0.08) 100%);
+            border: 1px solid rgba(37, 99, 235, 0.25);
+            border-radius: 12px;
+            padding: 1.75rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .takeaway-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            margin-bottom: 1rem;
+        }
+
+        .takeaway-list {
+            padding-left: 1.25rem;
+        }
+
+        .takeaway-list li {
+            margin-bottom: 0.6rem;
+            color: var(--text-main);
+        }
+
+        /* Section Styling */
+        section {
+            margin-bottom: 3.5rem;
+            scroll-margin-top: calc(var(--header-height) + 1.5rem);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            font-weight: 750;
+            margin-bottom: 1.25rem;
+            color: var(--text-main);
+            padding-bottom: 0.6rem;
+            border-bottom: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            letter-spacing: -0.01em;
+        }
+
+        h3 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin: 2rem 0 1rem;
+            color: var(--text-main);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            font-weight: 650;
+            margin: 1.3rem 0 0.6rem;
+            color: var(--text-main);
+        }
+
+        p {
+            margin-bottom: 1.25rem;
+            color: var(--text-main);
+            text-align: justify;
+            word-break: keep-all;
+        }
+
+        /* Callouts / Alerts */
+        .callout {
+            border-radius: 10px;
+            padding: 1.25rem 1.5rem;
+            margin: 1.5rem 0;
+            border-left: 4px solid;
+            background: var(--surface-secondary);
+        }
+
+        .callout.info {
+            border-color: var(--primary);
+            background: var(--primary-light);
+        }
+
+        .callout.tip {
+            border-color: var(--accent);
+            background: var(--accent-light);
+        }
+
+        .callout.warning {
+            border-color: #f59e0b;
+            background: rgba(245, 158, 11, 0.1);
+        }
+
+        .callout-title {
+            font-weight: 700;
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Flowchart / Architecture Box */
+        .arch-diagram {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        .flow-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .flow-card {
+            background: var(--surface-secondary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.2rem 1rem;
+            text-align: left;
+            position: relative;
+        }
+
+        .flow-badge {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+        }
+
+        .flow-card h5 {
+            font-size: 1rem;
+            margin-bottom: 0.4rem;
+            color: var(--text-main);
+        }
+
+        .flow-card p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 0;
+            text-align: left;
+        }
+
+        /* Tables */
+        .table-wrapper {
+            margin: 2rem 0;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow-x: auto;
+            background: var(--surface);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        caption {
+            padding: 0.85rem 1.2rem;
+            font-weight: 700;
+            font-size: 0.95rem;
+            text-align: left;
+            color: var(--text-main);
+            background: var(--surface-secondary);
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background: var(--surface-secondary);
+            color: var(--text-main);
+            font-weight: 650;
+            padding: 0.75rem 1rem;
+            border-bottom: 2px solid var(--border);
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-main);
+        }
+
+        tr:nth-child(even) {
+            background: rgba(0, 0, 0, 0.015);
+        }
+        [data-theme="dark"] tr:nth-child(even) {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        tr:hover {
+            background: var(--primary-light);
+        }
+
+        .text-right {
+            text-align: right;
+        }
+        .text-center {
+            text-align: center;
+        }
+        .highlight-val {
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        /* English Toggle Details */
+        details.en-box {
+            background: var(--surface-secondary);
+            border: 1px dashed var(--border);
+            border-radius: 8px;
+            padding: 0.6rem 1rem;
+            margin: 1rem 0 1.5rem;
+            font-size: 0.88rem;
+        }
+
+        details.en-box summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--text-muted);
+            user-select: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        details.en-box summary:hover {
+            color: var(--primary);
+        }
+
+        details.en-box .en-content {
+            margin-top: 0.75rem;
+            color: var(--text-muted);
+            font-style: italic;
+            border-top: 1px dashed var(--border);
+            padding-top: 0.75rem;
+            line-height: 1.7;
+        }
+
+        /* Formula Box */
+        .formula-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.2rem 1.5rem;
+            margin: 1.5rem 0;
+            text-align: center;
+            overflow-x: auto;
+        }
+
+        /* Keywords */
+        .keywords-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 1.2rem;
+        }
+
+        .keyword-tag {
+            background: var(--surface-secondary);
+            border: 1px solid var(--border);
+            font-size: 0.82rem;
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+            color: var(--text-muted);
+        }
+
+        /* Footer */
+        footer {
+            margin-top: 4rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border);
+            font-size: 0.85rem;
+            color: var(--text-light);
+            text-align: center;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .sidebar {
+                display: none;
+            }
+            .main-content {
+                margin-left: 0;
+                padding: 1.5rem;
+            }
+            .paper-title {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Navigation -->
+    <header class="navbar">
+        <a href="index.html" class="nav-brand">
+            <i class="fa-solid fa-graduation-cap"></i>
+            <span>신용 평가 논문 번역 포털</span>
+            <span class="badge">NOTE 논문</span>
+        </a>
+        <nav class="nav-links">
+            <a href="index.html" class="nav-link"><i class="fa-solid fa-house"></i> 포털 홈</a>
+            <a href="NOTE_korean.html" class="nav-link active"><i class="fa-solid fa-file-lines"></i> NOTE 논문</a>
+            <a href="NATE_korean.html" class="nav-link"><i class="fa-solid fa-file-lines"></i> NATE 논문</a>
+        </nav>
+        <div class="nav-controls">
+            <button class="btn-ctrl" id="btn-font-dec" title="글자 크기 축소"><i class="fa-solid fa-font"></i>-</button>
+            <button class="btn-ctrl" id="btn-font-inc" title="글자 크기 확대"><i class="fa-solid fa-font"></i>+</button>
+            <button class="btn-ctrl" id="btn-theme" title="다크 모드 전환"><i class="fa-solid fa-moon"></i></button>
+            <button class="btn-ctrl" onclick="window.print()" title="문서 인쇄"><i class="fa-solid fa-print"></i></button>
+        </div>
+    </header>
+
+    <div class="layout-container">
+        <!-- Sidebar TOC -->
+        <aside class="sidebar">
+            <div class="toc-title"><i class="fa-solid fa-list-ul"></i> 목차 (Contents)</div>
+            <ul class="toc-menu">
+                <li class="toc-item"><a href="#abstract" class="toc-link active">1. 초록 (Abstract)</a></li>
+                <li class="toc-item"><a href="#introduction" class="toc-link">2. 서론 (Introduction)</a></li>
+                <li class="toc-item"><a href="#related-work" class="toc-link">3. 관련 연구 (Related Work)</a></li>
+                <li class="toc-item"><a href="#methods" class="toc-link">4. 연구 방법론 (Methods)</a></li>
+                <li class="toc-item"><a href="#methods-pipeline" class="toc-link toc-sublink">4.1 NOTE 4단계 파이프라인</a></li>
+                <li class="toc-item"><a href="#methods-nsa" class="toc-link toc-sublink">4.2 비모수 오토인코더(NSA)</a></li>
+                <li class="toc-item"><a href="#methods-cwgan" class="toc-link toc-sublink">4.3 cWGAN 오버샘플링</a></li>
+                <li class="toc-item"><a href="#methods-xai" class="toc-link toc-sublink">4.4 설명 가능성 (XAI)</a></li>
+                <li class="toc-item"><a href="#results" class="toc-link">5. 실험 및 결과 (Results)</a></li>
+                <li class="toc-item"><a href="#results-generative" class="toc-link toc-sublink">5.1 생성 모델 품질 평가</a></li>
+                <li class="toc-item"><a href="#results-predictive" class="toc-link toc-sublink">5.2 분류 예측 성능 비교</a></li>
+                <li class="toc-item"><a href="#results-rsvd" class="toc-link toc-sublink">5.3 NSA vs rSVD 비교</a></li>
+                <li class="toc-item"><a href="#results-stat" class="toc-link toc-sublink">5.4 통계적 유의성 검정</a></li>
+                <li class="toc-item"><a href="#results-shap" class="toc-link toc-sublink">5.5 SHAP 설명 분석</a></li>
+                <li class="toc-item"><a href="#discussion" class="toc-link">6. 고찰 및 논의 (Discussion)</a></li>
+                <li class="toc-item"><a href="#conclusion" class="toc-link">7. 결론 (Conclusion)</a></li>
+                <li class="toc-item"><a href="#references" class="toc-link">8. 주요 참고문헌</a></li>
+            </ul>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Paper Header Card -->
+            <div class="paper-header">
+                <span class="journal-badge"><i class="fa-solid fa-book-open"></i> Scientific Reports (Nature Publishing Group, 2024) 14:26070</span>
+                <h1 class="paper-title">NOTE: 설명 가능한 신용 평가를 위한 비모수 오버샘플링 기법</h1>
+                <div class="paper-subtitle">NOTE: non-parametric oversampling technique for explainable credit scoring</div>
+                
+                <div class="authors-list">
+                    <div class="author-item"><i class="fa-solid fa-user"></i> <strong>한성일 (Seongil Han)</strong><sup>1</sup></div>
+                    <div class="author-item"><i class="fa-solid fa-user"></i> <strong>정해민 (Haemin Jung)</strong><sup>2</sup></div>
+                    <div class="author-item"><i class="fa-solid fa-envelope"></i> <strong>Paul D. Yoo</strong><sup>1*</sup></div>
+                    <div class="author-item"><i class="fa-solid fa-user"></i> <strong>Alessandro Provetti</strong><sup>1</sup></div>
+                    <div class="author-item"><i class="fa-solid fa-user"></i> <strong>Andrea Cali</strong><sup>1</sup></div>
+                </div>
+
+                <div class="meta-grid">
+                    <div class="meta-item">
+                        <strong>소속 기관</strong>
+                        1. 런던 대학교 버크벡 칼리지 컴퓨팅 & 수리과학부 (Birkbeck, University of London, UK)<br>
+                        2. 국립한국교통대학교 산업경영공학과 (Korea National University of Transportation)
+                    </div>
+                    <div class="meta-item">
+                        <strong>출판 정보 & DOI</strong>
+                        Open Access | DOI: <a href="https://doi.org/10.1038/s41598-024-78055-5" target="_blank" rel="noopener">10.1038/s41598-024-78055-5</a>
+                    </div>
+                </div>
+
+                <div class="keywords-bar">
+                    <span class="keyword-tag"><i class="fa-solid fa-tag"></i> 조건부 와서스타인 GAN (cWGAN)</span>
+                    <span class="keyword-tag"><i class="fa-solid fa-tag"></i> 적층 오토인코더 (Stacked Autoencoder)</span>
+                    <span class="keyword-tag"><i class="fa-solid fa-tag"></i> 설명 가능한 AI (XAI)</span>
+                    <span class="keyword-tag"><i class="fa-solid fa-tag"></i> 클래스 불균형 (Imbalanced Class)</span>
+                    <span class="keyword-tag"><i class="fa-solid fa-tag"></i> 오버샘플링 (Oversampling)</span>
+                    <span class="keyword-tag"><i class="fa-solid fa-tag"></i> 신용 평가 (Credit Scoring)</span>
+                </div>
+            </div>
+
+            <!-- Key Takeaways -->
+            <div class="takeaway-card">
+                <div class="takeaway-title"><i class="fa-solid fa-lightbulb"></i> 핵심 요약 (Key Takeaways)</div>
+                <ul class="takeaway-list">
+                    <li><strong>핵심 과제:</strong> 신용 평가 데이터셋은 부도 고객(소수 클래스)이 매우 적은 극심한 <strong>클래스 불균형</strong>과 비선형적 특성을 띠며, 금융 규제 상 <strong>설명 가능성(Explainability)</strong> 확보가 필수적입니다.</li>
+                    <li><strong>기존 기법의 한계:</strong> 널리 쓰이는 SMOTE는 고차원 비선형 데이터에서 경계 모호성과 노이즈를 유발하며, 단순 cWGAN은 복잡한 비선형 잠재 특징(Latent features)을 온전히 보존하지 못합니다.</li>
+                    <li><strong>NOTE 프레임워크의 제안:</strong> 비모수 적층 오토인코더(NSA)를 통해 비선형 잠재 특성을 먼저 추출·결합하고, Gradient Penalty와 보조 분류기 손실(AC Loss)을 갖춘 cWGAN으로 고품질 소수 클래스를 오버샘플링한 후, SHAP 기반 TreeExplainer/LinearExplainer로 해석합니다.</li>
+                    <li><strong>탁월한 성과:</strong> HE 및 GMSC 벤치마크 데이터셋에서 Extra Trees(ET: AUC 0.9913, 0.9831), Random Forest(RF: AUC 0.9891, 0.9837), Gradient Boosting(GB: AUC 0.9891, 0.9834) 등 전 모델에서 기존 SOTA(ADS-GAN, DeepSMOTE, 기존 cWGAN)를 통계적으로 유의미하게(Friedman p < 0.05) 압도했습니다.</li>
+                </ul>
+            </div>
+
+            <!-- 1. Abstract -->
+            <section id="abstract">
+                <h2><i class="fa-solid fa-bookmark"></i> 1. 초록 (Abstract)</h2>
+                <p>
+                    신용 평가(Credit scoring) 모델은 금융 기관이 대출 신청자의 신용 위험을 평가하고 수익성을 유지하는 데 있어 결정적인 역할을 합니다. 머신러닝 기법이 발전하면서 신용 평가의 정확도가 크게 향상되었음에도 불구하고, 데이터의 불균형한 클래스 분포(imbalanced class distributions)는 여전히 중대한 기술적 난제로 남아 있습니다. 
+                </p>
+                <p>
+                    널리 사용되는 소수 클래스 합성 오버샘플링 기법인 SMOTE(Synthetic Minority Oversampling TEchnique)는 고차원의 비선형 데이터에서 한계를 보이며, 클래스 간 경계 중첩으로 인해 합성 데이터에 노이즈를 유입시키는 경향이 있습니다. 이에 대한 대안으로 복잡한 데이터 분포를 정밀하게 모델링할 수 있는 생성 적대 신경망(Generative Adversarial Networks, GAN)이 주목받고 있으며, 특히 조건부 와서스타인 GAN(Conditional Wasserstein GAN, cWGAN)은 신용 데이터셋의 수치형 및 범주형 변수를 함께 다루는 데 우수한 잠재력을 보여주었습니다.
+                </p>
+                <p>
+                    그러나 비선형 데이터로부터 핵심 잠재 특징(latent features)을 효과적으로 추출하고 모델의 설명 가능성(Explainability)을 함께 향상시키는 연구는 여전히 부족한 실정입니다. 본 연구는 이러한 과제를 극복하기 위해 <strong>설명 가능한 신용 평가를 위한 비모수 오버샘플링 기법인 NOTE(Non-parametric Oversampling Technique for Explainable credit scoring)</strong>를 제안합니다.
+                </p>
+                <p>
+                    NOTE는 <strong>비모수 적층 오토인코더(NSA)</strong>를 통해 비선형 잠재 표현을 포착하고, <strong>cWGAN</strong>을 통해 소수 클래스를 정교하게 오버샘플링하며, <strong>XAI(TreeExplainer/LinearExplainer)</strong>를 결합하여 모델의 판정 근거를 투명하게 제시하는 통합 프레임워크를 제공합니다. 실험 결과, NOTE는 비선형 및 불균형 신용 데이터셋에서 분류 정확도와 모델 안정성을 크게 개선하여 기존 최신 오버샘플링 기법들을 월등히 능가하는 동시에, 예측 결과에 대한 신뢰성 높은 설명력을 확보함을 입증하였습니다.
+                </p>
+
+                <details class="en-box">
+                    <summary><i class="fa-solid fa-language"></i> 영문 초록 원문 보기</summary>
+                    <div class="en-content">
+                        Credit scoring models are critical for financial institutions to assess borrower risk and maintain profitability. Although machine learning models have improved credit scoring accuracy, imbalanced class distributions remain a major challenge. The widely used Synthetic Minority Oversampling TEchnique (SMOTE) struggles with high-dimensional, non-linear data and may introduce noise through class overlap. Generative Adversarial Networks (GANs) have emerged as an alternative, offering the ability to model complex data distributions. Conditional Wasserstein GANs (cWGANs) have shown promise in handling both numerical and categorical features in credit scoring datasets. However, research on extracting latent features from non-linear data and improving model explainability remains limited. To address these challenges, this paper introduces the Non-parametric Oversampling Technique for Explainable credit scoring (NOTE). The NOTE offers a unified approach that integrates a Non-parametric Stacked Autoencoder (NSA) for capturing non-linear latent features, cWGAN for oversampling the minority class, and a classification process designed to enhance explainability. The experimental results demonstrate that NOTE surpasses state-of-the-art oversampling techniques by improving classification accuracy and model stability, particularly in non-linear and imbalanced credit scoring datasets, while also enhancing the explainability of the results.
+                    </div>
+                </details>
+            </section>
+
+            <!-- 2. Introduction -->
+            <section id="introduction">
+                <h2><i class="fa-solid fa-compass"></i> 2. 서론 (Introduction)</h2>
+                <p>
+                    신용 위험(Credit risk)은 대출 신청자의 신용도 결함으로 인해 발생할 수 있는 잠재적 손실 가능성으로 정의됩니다. 이는 부실 채권 발생과 직결되며 파산 위험을 초래할 수 있으므로, 금융 기관의 지속 가능성을 지키기 위해 정밀한 신용 평가를 통해 신용 위험을 정확히 관리하는 것은 무엇보다 중요합니다.
+                </p>
+                <p>
+                    전통적으로 신용 평가에서는 <strong>로지스틱 회귀(Logistic Regression, LR)</strong>가 가장 널리 사용되어 왔으며 표준 기법으로 인정받아 왔습니다. 모수(Parametric) 모델인 LR은 계산 비용과 학습 시간이 적게 들고 설명 가능성(Explainability)과 해석 가능성(Interpretability)이 매우 뛰어납니다. 입력 변수와 목표 변수 간의 선형적 관계식을 도출할 수 있기 때문입니다. 그러나 LR과 같은 모수 모델의 치명적인 한계는 엄격한 함수적 가정으로 인해 <strong>예측력(Predictive power)이 제한</strong>된다는 점입니다.
+                </p>
+                <p>
+                    반면, <strong>랜덤 포레스트(Random Forest, RF)</strong>, <strong>그래디언트 부스팅(Gradient Boosting, GB)</strong>과 같은 트리 기반 앙상블 모델은 <strong>비모수(Non-parametric)</strong> 모델입니다. 비모수 모델은 학습 과정에서 데이터에 대한 함수적 형태의 가정을 최소화하므로, 뛰어난 유연성을 바탕으로 로지스틱 회귀를 능가하는 우수한 분류 성능을 발휘합니다. 하지만 복잡한 결정 트리 구조로 인해 예측 과정이 <strong>블랙박스(Black-box)</strong>화되어 결과를 직관적으로 설명하기 어렵다는 중대한 단점이 있습니다.
+                </p>
+                <p>
+                    최근 최신 머신러닝 기술을 신용 평가에 접목하려는 많은 시도가 이루어지고 있으나, 여전히 두 가지 근본적인 문제에 직면해 있습니다:
+                </p>
+                <ol style="padding-left: 1.5rem; margin-bottom: 1.25rem;">
+                    <li style="margin-bottom: 0.5rem;"><strong>데이터셋의 극심한 클래스 불균형(Imbalanced class distribution):</strong> 현실의 신용 평가 데이터는 부도자(소수 클래스)가 정상 상환자(다수 클래스)에 비해 극히 적습니다. 머신러닝 모델은 데이터가 균형을 이루고 있다고 가정하므로, 불균형 데이터로 학습하면 전체 정확도를 높이기 위해 단순히 다수 클래스만을 예측하려는 편향(Bias)이 발생하여 소수 클래스의 오분류를 초래합니다.</li>
+                    <li><strong>모델의 설명 가능성(Explainability) 결여:</strong> 금융 및 대출 심사 영역에서는 왜 특정 고객의 대출이 거절되었는지 법적·윤리적·규제적 근거를 명확히 제시해야 하므로 설명 가능성이 필수불가결합니다.</li>
+                </ol>
+                
+                <div class="callout info">
+                    <div class="callout-title"><i class="fa-solid fa-bullseye"></i> 본 연구의 핵심 기여 (Contributions)</div>
+                    <p style="margin-bottom:0;">
+                        본 논문은 이러한 불균형성과 설명 가능성 문제를 동시에 해결하기 위해 <strong>NOTE 프레임워크</strong>를 제안합니다. 비선형 잠재 특징을 추출하는 <strong>비모수 적층 오토인코더(NSA)</strong>와 고품질 합성 데이터를 생성하는 <strong>조건부 와서스타인 GAN(cWGAN)</strong>을 결합하고, <strong>TreeExplainer/LinearExplainer</strong>를 통합하여 최상의 예측 정확도와 투명한 설명력을 동시에 달성합니다.
+                    </p>
+                </div>
+            </section>
+
+            <!-- 3. Related Work -->
+            <section id="related-work">
+                <h2><i class="fa-solid fa-book"></i> 3. 관련 연구 (Related Work)</h2>
+                
+                <h3>3.1 리샘플링 기법 (Re-sampling Methods)</h3>
+                <p>
+                    클래스 불균형을 데이터 수준에서 해결하기 위해 리샘플링 기법이 널리 활용되어 왔습니다. 리샘플링은 다수 클래스 인스턴스를 줄이는 언더샘플링(Under-sampling)과 소수 클래스 인스턴스를 늘리는 오버샘플링(Over-sampling)으로 구분됩니다. 가장 대표적인 오버샘플링 기법인 <strong>SMOTE(Synthetic Minority Over-sampling TEchnique)</strong>는 k-최근접 이웃(KNN) 간의 선형 보간을 통해 합성 샘플을 생성합니다.
+                </p>
+                <p>
+                    그러나 SMOTE는 고차원이고 복잡한 비선형 데이터 분포를 가진 실제 신용 데이터에서는 다수 클래스와 소수 클래스 간의 경계면에서 중첩(Overlap)을 일으키고 노이즈를 생성하는 치명적인 한계가 있습니다. 이를 보완하기 위해 Borderline-SMOTE, Safe-level SMOTE, ADASYN 등이 제안되었으나 비선형 매니폴드 구조를 온전히 학습하기에는 여전히 역부족이었습니다.
+                </p>
+
+                <h3>3.2 신용 평가에서의 GAN 기반 오버샘플링</h3>
+                <p>
+                    최근 딥러닝 기반의 <strong>생성 적대 신경망(GAN)</strong>이 고차원 데이터 분포 모델링의 강력한 대안으로 부상했습니다. GAN은 생성자(Generator)와 판별자(Discriminator)의 적대적 경쟁 학습을 통해 실제 데이터 분포를 모사합니다. 클래스 라벨 정보를 조건으로 부여하는 조건부 GAN(cGAN)과 경계 영역을 정교화한 borderline-cGAN(bcGAN) 등이 개발되었습니다.
+                </p>
+                <p>
+                    나아가 기존 GAN의 학습 불안정성과 모드 붕괴(Mode collapse) 문제를 해결하기 위해 와서스타인 거리(Earth Mover's Distance)와 그래디언트 패널티(Gradient Penalty)를 도입한 <strong>cWGAN-GP</strong>가 등장했습니다. Engelmann & Lessmann(2021)은 cWGAN이 신용 평가 표 형태(Tabular) 데이터에서 연속형 및 범주형 변수를 모두 효과적으로 합성할 수 있음을 입증한 바 있습니다.
+                </p>
+
+                <h3>3.3 오토인코더(Autoencoder)와 비선형 잠재 특징 표현</h3>
+                <p>
+                    신용 데이터의 복잡한 비선형 구조를 효과적으로 학습하기 위해 차원 축소 및 특징 추출 기법이 연구되었습니다. 기존의 주성분 분석(PCA)이나 무작위 특이값 분해(rSVD)는 <strong>선형적 관계</strong>만을 포착할 수 있다는 근본적인 한계가 있습니다.
+                </p>
+                <p>
+                    반면, <strong>적층 오토인코더(Stacked Autoencoder, SAE)</strong>는 신경망의 비선형 활성화 함수를 통해 데이터의 복잡한 비선형 매니폴드에 내재된 잠재 표현(Latent representations)을 추출할 수 있습니다. NOTE는 비모수 적층 오토인코더(NSA)를 설계하여 원본 데이터의 비선형 특징을 잠재 벡터로 추출하고 이를 원본 특징과 결합하는 전략을 채택합니다.
+                </p>
+
+                <h3>3.4 설명 가능한 인공지능 (Explainable AI, XAI)</h3>
+                <p>
+                    금융 분야에서는 블랙박스 모델에 대한 해석 가능성 요구가 매우 엄격합니다. 게임 이론의 섀플리 값(Shapley values)에 기반한 <strong>SHAP(SHapley Additive exPlanations)</strong>은 각 특성이 예측값에 미치는 한계 기여도를 공정하게 배분하여 일관성(Consistency)과 국소 정확성(Local accuracy)을 보장합니다. 본 연구는 트리 모델에 최적화된 고속 알고리즘인 <strong>TreeExplainer</strong>와 모수 모델을 위한 <strong>LinearExplainer</strong>를 접목하여 전역적(Global) 중요도와 개별 대출 심사 건에 대한 지역적(Local) 인과관계를 완벽하게 규명합니다.
+                </p>
+            </section>
+
+            <!-- 4. Methods -->
+            <section id="methods">
+                <h2><i class="fa-solid fa-gears"></i> 4. 연구 방법론 (Methods)</h2>
+                
+                <h3 id="methods-pipeline">4.1 NOTE의 4단계 파이프라인</h3>
+                <p>
+                    NOTE 프레임워크는 데이터 전처리부터 모델 설명에 이르는 체계적인 4단계 순차 프로세스로 구성됩니다:
+                </p>
+
+                <div class="arch-diagram">
+                    <h4 style="margin-bottom: 1rem;"><i class="fa-solid fa-network-wired"></i> NOTE 프레임워크 전체 아키텍처</h4>
+                    <div class="flow-grid">
+                        <div class="flow-card">
+                            <span class="flow-badge">1단계</span>
+                            <h5>데이터 수집 및 전처리</h5>
+                            <p>불균형 신용 데이터셋(HE, GMSC) 수집, 결측치 대체, 범주형/수치형 정규화 전처리</p>
+                        </div>
+                        <div class="flow-card">
+                            <span class="flow-badge">2단계</span>
+                            <h5>NSA 잠재 특징 추출</h5>
+                            <p>비모수 적층 오토인코더로 비선형 잠재 표현 학습 및 원본 특성과 통합 결합</p>
+                        </div>
+                        <div class="flow-card">
+                            <span class="flow-badge">3단계</span>
+                            <h5>cWGAN-GP 오버샘플링</h5>
+                            <p>Lipschitz 연속성과 보조 분류기 손실(AC Loss)을 갖춘 cWGAN으로 고품질 소수 클래스 합성</p>
+                        </div>
+                        <div class="flow-card">
+                            <span class="flow-badge">4단계</span>
+                            <h5>분류 예측 및 XAI 설명</h5>
+                            <p>트리 앙상블 분류기 학습 및 TreeExplainer/LinearExplainer를 통한 전역/개별 판정 해석</p>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>신용 평가 데이터셋 상세</h3>
+                <p>
+                    본 연구에서는 신용 평가 분야의 대표적 공개 벤치마크 데이터셋인 <strong>Home Equity (HE)</strong>와 <strong>Give Me Some Credit (GMSC)</strong>을 사용하였습니다.
+                </p>
+                <div class="table-wrapper">
+                    <table>
+                        <caption>표 1. NOTE 연구에서 사용된 HE 및 GMSC 데이터셋의 주요 특성 구성</caption>
+                        <thead>
+                            <tr>
+                                <th>데이터셋</th>
+                                <th>변수명 (Feature)</th>
+                                <th>설명 (Description)</th>
+                                <th>데이터 타입</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td rowspan="6"><strong>HE (Home Equity)</strong><br><small>총 5,960건<br>부도 1,189건 (19.95%)<br>IR = 4.017</small></td>
+                                <td>BAD *</td>
+                                <td>대출 채무불이행(부도) 여부 (타깃 변수, 1=부도, 0=정상)</td>
+                                <td>이진 범주형</td>
+                            </tr>
+                            <tr>
+                                <td>LOAN</td>
+                                <td>신청 대출 금액</td>
+                                <td>연속형 수치</td>
+                            </tr>
+                            <tr>
+                                <td>MORTDUE</td>
+                                <td>기존 모기지 잔여 채무액</td>
+                                <td>연속형 수치</td>
+                            </tr>
+                            <tr>
+                                <td>VALUE</td>
+                                <td>담보 주택의 현재 평가 가치</td>
+                                <td>연속형 수치</td>
+                            </tr>
+                            <tr>
+                                <td>REASON / JOB</td>
+                                <td>대출 목적 (부채통합 등) / 차주의 직종 (6개 카테고리)</td>
+                                <td>명목 범주형</td>
+                            </tr>
+                            <tr>
+                                <td>YOJ / DEROG / DELINQ / CLAGE / NINQ / CLNO / DEBTINC</td>
+                                <td>현직 근속 연수, 주요 부정적 신용기록 건수, 연체 계좌 수, 가장 오래된 신용계좌 개설 경과 월수, 최근 대출조회 건수, 총 신용계좌 수, 소득 대비 부채비율(DTI)</td>
+                                <td>수치형 (정수/연속형)</td>
+                            </tr>
+                            <tr>
+                                <td rowspan="5"><strong>GMSC (Give Me Some Credit)</strong><br><small>총 150,000건<br>부도 10,026건 (6.68%)<br>IR = 13.961</small></td>
+                                <td>SeriousDlqin2yrs **</td>
+                                <td>향후 2년 내 90일 이상 심각한 연체 발생 여부 (타깃, 1=부도, 0=정상)</td>
+                                <td>이진 범주형</td>
+                            </tr>
+                            <tr>
+                                <td>RevolvingUtilizationOfUnsecuredLines</td>
+                                <td>담보 없는 신용카드 및 개인 신용 한도 소진율 (잔액 대비 한도 비율)</td>
+                                <td>백분율 (연속형)</td>
+                            </tr>
+                            <tr>
+                                <td>age / DebtRatio / MonthlyIncome</td>
+                                <td>차주 연령(세), 월 총부채상환액 비율, 월 소득</td>
+                                <td>수치형</td>
+                            </tr>
+                            <tr>
+                                <td>NumberOfTime30-59DaysPastDueNotWorse / 60-89Days / 90Days</td>
+                                <td>지난 2년 간 30~59일, 60~89일, 90일 이상 연체 발생 횟수</td>
+                                <td>정수형</td>
+                            </tr>
+                            <tr>
+                                <td>CombinedCreditLoans *** / CombinedDefaulted *** / NumberOfDependents</td>
+                                <td>엔지니어링된 총 신용대출 건수 구간, 총 연체 이력 구간, 부양가족 수</td>
+                                <td>범주형</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 id="methods-nsa">4.2 비모수 적층 오토인코더 (NSA) 기반 특징 추출</h3>
+                <p>
+                    신용 데이터는 대출액, 소득, 부채비율 간의 고도의 비선형 상호작용을 내포하고 있습니다. 주성분 분석(PCA)과 같은 선형 기법은 이러한 비선형 구조를 보존하지 못하므로, 본 연구에서는 <strong>비모수 적층 오토인코더(Non-parametric Stacked Autoencoder, NSA)</strong>를 도입합니다.
+                </p>
+                <p>
+                    NSA는 인코더(Encoder) 함수 $f(x)$를 통해 입력 벡터 $x$를 저차원의 비선형 잠재 표현 $z$로 압축하고, 디코더(Decoder) 함수 $g(z)$를 통해 이를 원래의 차원으로 복원합니다. 복원 오차(Reconstruction Error)를 최소화하도록 신경망을 비지도 학습 방식으로 훈련합니다:
+                </p>
+                <div class="formula-card">
+                    $$\mathcal{L}_{SAE} = \frac{1}{N} \sum_{i=1}^N \| x_i - g(f(x_i)) \|^2 + \lambda \sum_{l} \| W^{(l)} \|_F^2$$
+                </div>
+                <p>
+                    학습이 완료된 NSA의 병목 계층(Bottleneck Layer)에서 추출된 잠재 특징 벡터 $Z$는 원본 특징 행렬 $X$와 결합(Concatenate)되어 증강된 특징 공간 $[X, Z]$를 구성합니다. 이를 통해 후속 생성 모델 및 분류기가 데이터의 비선형 본질을 완전하게 활용할 수 있게 됩니다.
+                </p>
+
+                <h3 id="methods-cwgan">4.3 cWGAN 기반 소수 클래스 오버샘플링</h3>
+                <p>
+                    NSA에 의해 비선형 특징이 보강된 데이터셋은 여전히 극심한 클래스 불균형 문제를 안고 있습니다. NOTE는 소수 클래스(부도자)의 개수를 다수 클래스(정상 상환자)와 동일한 수준으로 맞추기 위해 <strong>조건부 와서스타인 GAN(cWGAN-GP)</strong>을 적용합니다.
+                </p>
+                <p>
+                    기존 GAN이 사용하는 Jensen-Shannon 발산(JSD)이나 KL 발산(KLD)은 두 확률 분포의 지지집합(Support)이 겹치지 않을 때 그래디언트 소실(Vanishing Gradient)을 유발합니다. 와서스타인 거리(EMD, Earth Mover's Distance)는 연속적이고 매끄러운 최적화 지형을 제공합니다:
+                </p>
+                <div class="formula-card">
+                    $$W(\mathbb{P}_r, \mathbb{P}_g) = \sup_{\| f \|_L \le 1} \mathbb{E}_{x \sim \mathbb{P}_r}[f(x)] - \mathbb{E}_{\tilde{x} \sim \mathbb{P}_g}[f(\tilde{x})]$$
+                </div>
+                <p>
+                    1-Lipschitz 연속성 조건을 안정적으로 보장하기 위해 판별자 가중치를 클리핑하는 대신 <strong>그래디언트 패널티(Gradient Penalty)</strong> 항을 손실 함수에 직접 추가합니다:
+                </p>
+                <div class="formula-card">
+                    $$\mathcal{L}_{critic} = \mathbb{E}_{\tilde{x} \sim \mathbb{P}_g}[D(\tilde{x}|y)] - \mathbb{E}_{x \sim \mathbb{P}_r}[D(x|y)] + \lambda_{gp} \mathbb{E}_{\hat{x} \sim \mathbb{P}_{\hat{x}}}\left[ (\|\nabla_{\hat{x}} D(\hat{x}|y)\|_2 - 1)^2 \right]$$
+                </div>
+                <p>
+                    또한 표 형태 데이터의 범주형 변수를 사실적으로 생성하기 위해 <strong>Gumbel-Softmax</strong> 함수를 적용하고, 생성자가 올바른 클래스 라벨 특성을 정확히 모사하도록 <strong>보조 분류기 손실(Auxiliary Classifier, AC Loss)</strong>을 결합하여 생성 품질을 극대화하였습니다.
+                </p>
+
+                <h3 id="methods-xai">4.4 모델 분류 예측 및 XAI 설명</h3>
+                <p>
+                    오버샘플링을 통해 클래스 균형이 달성된 데이터셋을 바탕으로 모수 모델인 <strong>로지스틱 회귀(LR)</strong>와 비모수 모델인 <strong>의사결정나무(DT), 엑스트라 트리(ET), 랜덤 포레스트(RF), 그래디언트 부스팅(GB)</strong>을 학습시킵니다.
+                </p>
+                <p>
+                    학습된 최적 모델의 예측 논리를 규명하기 위해 <strong>SHAP</strong> 프레임워크를 적용합니다. 각 입력 변수 $i$의 섀플리 값 $\phi_i$는 해당 변수가 포함되었을 때 모델 예측값의 가중 한계 기여도를 공정하게 계산합니다:
+                </p>
+                <div class="formula-card">
+                    $$\phi_i(f, x) = \sum_{S \subseteq F \setminus \{i\}} \frac{|S|!(|F| - |S| - 1)!}{|F|!} \left[ f(S \cup \{i\}) - f(S) \right]$$
+                </div>
+                <p>
+                    트리 기반 모델에 대해서는 계산 복잡도를 $O(T L D^2)$로 대폭 축소한 <strong>TreeExplainer</strong>를 사용하여 전역적 피처 중요도(Feature Importance), 2차원 특성 상호작용(Partial Dependence), 개별 차주에 대한 국소적 승인/거절 요인(Waterfall 및 Force 플롯)을 완벽하게 시각화합니다.
+                </p>
+            </section>
+
+            <!-- 5. Results -->
+            <section id="results">
+                <h2><i class="fa-solid fa-chart-line"></i> 5. 실험 및 결과 (Results)</h2>
+
+                <h3 id="results-generative">5.1 생성 모델 수렴성 및 합성 데이터 품질</h3>
+                <p>
+                    NOTE는 cWGAN을 통해 소수 클래스를 완벽하게 증강하여 학습 데이터셋의 균형을 형성하였습니다.
+                </p>
+                <div class="table-wrapper">
+                    <table>
+                        <caption>표 2. NOTE 오버샘플링 적용 후 HE 및 GMSC 데이터셋의 클래스 분포 변화</caption>
+                        <thead>
+                            <tr>
+                                <th>데이터셋</th>
+                                <th>클래스 구분</th>
+                                <th>원본 샘플 수 (Original)</th>
+                                <th>합성 생성 샘플 수 (Generated)</th>
+                                <th>증강 후 총 샘플 수 (Total)</th>
+                                <th>불균형 비율 변화</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td rowspan="3"><strong>HE 데이터셋</strong></td>
+                                <td>정상 상환 (0)</td>
+                                <td class="text-right">4,771</td>
+                                <td class="text-right">0</td>
+                                <td class="text-right">4,771</td>
+                                <td rowspan="3" class="text-center"><span class="highlight-val">IR 4.017 &rarr; 1.000</span><br>(완전 50:50 균형)</td>
+                            </tr>
+                            <tr>
+                                <td>채무 불이행 (1)</td>
+                                <td class="text-right">1,189</td>
+                                <td class="text-right highlight-val">3,582</td>
+                                <td class="text-right">4,771</td>
+                            </tr>
+                            <tr style="background: var(--surface-secondary); font-weight:600;">
+                                <td>합계 (Total)</td>
+                                <td class="text-right">5,960</td>
+                                <td class="text-right">3,582</td>
+                                <td class="text-right">9,542</td>
+                            </tr>
+                            <tr>
+                                <td rowspan="3"><strong>GMSC 데이터셋</strong></td>
+                                <td>정상 상환 (0)</td>
+                                <td class="text-right">139,974</td>
+                                <td class="text-right">0</td>
+                                <td class="text-right">139,974</td>
+                                <td rowspan="3" class="text-center"><span class="highlight-val">IR 13.961 &rarr; 1.000</span><br>(완전 50:50 균형)</td>
+                            </tr>
+                            <tr>
+                                <td>채무 불이행 (1)</td>
+                                <td class="text-right">10,026</td>
+                                <td class="text-right highlight-val">129,948</td>
+                                <td class="text-right">139,974</td>
+                            </tr>
+                            <tr style="background: var(--surface-secondary); font-weight:600;">
+                                <td>합계 (Total)</td>
+                                <td class="text-right">150,000</td>
+                                <td class="text-right">129,948</td>
+                                <td class="text-right">279,948</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p>
+                    학습 과정 모니터링 결과, 생성자 및 비판자(Discriminator) 손실이 안정적으로 수렴하였으며, Wasserstein 거리가 점진적으로 감소하여 0 근처에서 안정화되었습니다. 또한 그래디언트 패널티가 0에 가깝게 유지되어 Lipschitz 연속성 제약이 엄격히 준수되었음을 확인하였습니다. 실제 데이터와 합성 데이터의 확률 밀도(Density) 및 빈도 분포를 비교한 결과, 수치형 변수(LOAN, MORTDUE, VALUE 등) 및 범주형 변수(JOB, REASON 등) 전반에서 실제 데이터의 중앙값, 첨도, 왜도를 매우 정밀하게 재현하였습니다.
+                </p>
+
+                <h3 id="results-predictive">5.2 분류 예측 성능 비교 (AUC)</h3>
+                <p>
+                    5-겹 교차 검증(5-fold CV)을 통한 하이퍼파라미터 그리드 서치 최적화 후, 10-겹 교차 검증(10-fold CV)을 실시하여 Area Under the Curve (AUC)를 비교 평가하였습니다. 원본 불균형 데이터(None), 최신 생성형 오버샘플링 기법인 ADS-GAN 및 DeepSMOTE, 그리고 이전 문헌의 벤치마크(Engelmann & Lessmann, 2021)와 비교하였습니다.
+                </p>
+                <div class="table-wrapper">
+                    <table>
+                        <caption>표 3. 하이퍼파라미터 최적화 후 리샘플링 미적용 및 다양한 오버샘플링 기법 간 AUC 성능 비교 (괄호 안은 기존 문헌 벤치마크, 최고 성능 굵은 글씨)</caption>
+                        <thead>
+                            <tr>
+                                <th rowspan="2">분류기 (Model)</th>
+                                <th colspan="4" class="text-center" style="border-bottom: 1px solid var(--border);">HE 데이터셋 (AUC)</th>
+                                <th colspan="4" class="text-center" style="border-bottom: 1px solid var(--border);">GMSC 데이터셋 (AUC)</th>
+                            </tr>
+                            <tr>
+                                <th>리샘플링 없음 (None)</th>
+                                <th>NOTE (제안 기법)</th>
+                                <th>ADS-GAN</th>
+                                <th>DeepSMOTE</th>
+                                <th>리샘플링 없음 (None)</th>
+                                <th>NOTE (제안 기법)</th>
+                                <th>ADS-GAN</th>
+                                <th>DeepSMOTE</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>LR (로지스틱 회귀)</strong></td>
+                                <td>0.8521 (0.7738)</td>
+                                <td class="highlight-val">0.9595 (0.7554)</td>
+                                <td>0.8395</td>
+                                <td>0.9535</td>
+                                <td>0.7984 (0.6981)</td>
+                                <td class="highlight-val">0.9750 (0.7449)</td>
+                                <td>0.7748</td>
+                                <td>0.8146</td>
+                            </tr>
+                            <tr>
+                                <td><strong>DT (의사결정나무)</strong></td>
+                                <td>0.7844 (0.7867)</td>
+                                <td class="highlight-val">0.9546 (0.7935)</td>
+                                <td>0.8112</td>
+                                <td>0.9443</td>
+                                <td>0.5814 (0.6084)</td>
+                                <td class="highlight-val">0.9648 (0.6090)</td>
+                                <td>0.9546</td>
+                                <td>0.8312</td>
+                            </tr>
+                            <tr>
+                                <td><strong>ET (엑스트라 트리)</strong></td>
+                                <td>0.9706 (N/A)</td>
+                                <td class="highlight-val" style="font-size: 1.05em;">0.9913 (N/A)</td>
+                                <td>0.9411</td>
+                                <td>0.9608</td>
+                                <td>0.7926 (N/A)</td>
+                                <td class="highlight-val" style="font-size: 1.05em;">0.9831 (N/A)</td>
+                                <td>0.9672</td>
+                                <td>0.8588</td>
+                            </tr>
+                            <tr>
+                                <td><strong>RF (랜덤 포레스트)</strong></td>
+                                <td>0.9550 (0.9733)</td>
+                                <td class="highlight-val">0.9891 (0.9761)</td>
+                                <td>0.8708</td>
+                                <td>0.9571</td>
+                                <td>0.8181 (0.8415)</td>
+                                <td class="highlight-val">0.9837 (0.8412)</td>
+                                <td>0.9766</td>
+                                <td>0.8530</td>
+                            </tr>
+                            <tr>
+                                <td><strong>GB (그래디언트 부스팅)</strong></td>
+                                <td>0.9336 (0.9213)</td>
+                                <td class="highlight-val">0.9891 (0.9119)</td>
+                                <td>0.8525</td>
+                                <td>0.9602</td>
+                                <td>0.8153 (0.8330)</td>
+                                <td class="highlight-val">0.9834 (0.8304)</td>
+                                <td>0.9754</td>
+                                <td>0.8544</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="callout tip">
+                    <div class="callout-title"><i class="fa-solid fa-trophy"></i> 분류 성능 핵심 분석</div>
+                    <ul style="padding-left: 1.25rem; margin-bottom: 0;">
+                        <li><strong>모든 모델 및 데이터셋에서 압도적 1위 달성:</strong> NOTE는 HE 및 GMSC 데이터셋의 모든 분류 모델에서 최고 AUC를 달성하였습니다.</li>
+                        <li><strong>트리 기반 앙상블의 극대화된 성능:</strong> 엑스트라 트리(ET) 모델은 HE에서 <strong>0.9913</strong>, GMSC에서 <strong>0.9831</strong>이라는 경이로운 성능을 기록하였습니다.</li>
+                        <li><strong>기존 SOTA 능가:</strong> ADS-GAN이나 DeepSMOTE와 비교할 때도 현저한 격차로 앞서며 비모수 오토인코더와 cWGAN의 시너지 효과를 입증하였습니다.</li>
+                    </ul>
+                </div>
+
+                <h3 id="results-rsvd">5.3 잠재 표현 추출 효과: NSA vs rSVD</h3>
+                <p>
+                    비모수 적층 오토인코더(NSA)가 비선형 특징을 얼마나 우수하게 보존하는지 입증하기 위해, 선형 노이즈 제거 및 차원 축소 기법인 rSVD(무작위 특이값 분해)와 결합된 cWGAN 모델들과 비교 평가를 수행하였습니다.
+                </p>
+                <div class="table-wrapper">
+                    <table>
+                        <caption>표 4. 잠재 특징 추출 및 노이즈 제거 방식에 따른 AUC 성능 비교 (rSVD vs NSA)</caption>
+                        <thead>
+                            <tr>
+                                <th rowspan="2">분류기</th>
+                                <th colspan="4" class="text-center" style="border-bottom: 1px solid var(--border);">HE 데이터셋 (AUC)</th>
+                                <th colspan="4" class="text-center" style="border-bottom: 1px solid var(--border);">GMSC 데이터셋 (AUC)</th>
+                            </tr>
+                            <tr>
+                                <th>NOTE (NSA + cWGAN)</th>
+                                <th>rSVD + cWGAN</th>
+                                <th>rSVD + NSA + cWGAN</th>
+                                <th>cWGAN 벤치마크</th>
+                                <th>NOTE (NSA + cWGAN)</th>
+                                <th>rSVD + cWGAN</th>
+                                <th>rSVD + NSA + cWGAN</th>
+                                <th>cWGAN 벤치마크</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>LR</td>
+                                <td class="highlight-val">0.9595</td>
+                                <td>0.8152</td>
+                                <td>0.9257</td>
+                                <td>0.7554</td>
+                                <td class="highlight-val">0.9750</td>
+                                <td>0.9562</td>
+                                <td>0.9643</td>
+                                <td>0.7449</td>
+                            </tr>
+                            <tr>
+                                <td>DT</td>
+                                <td class="highlight-val">0.9546</td>
+                                <td>0.8682</td>
+                                <td>0.9227</td>
+                                <td>0.7935</td>
+                                <td class="highlight-val">0.9648</td>
+                                <td>0.9642</td>
+                                <td>0.9641</td>
+                                <td>0.6090</td>
+                            </tr>
+                            <tr>
+                                <td>ET</td>
+                                <td class="highlight-val">0.9913</td>
+                                <td>0.9777</td>
+                                <td>0.9804</td>
+                                <td>N/A</td>
+                                <td class="highlight-val">0.9831</td>
+                                <td>0.9735</td>
+                                <td>0.9776</td>
+                                <td>N/A</td>
+                            </tr>
+                            <tr>
+                                <td>RF</td>
+                                <td class="highlight-val">0.9891</td>
+                                <td>0.9685</td>
+                                <td>0.9775</td>
+                                <td>0.9761</td>
+                                <td class="highlight-val">0.9837</td>
+                                <td>0.9806</td>
+                                <td>0.9816</td>
+                                <td>0.8412</td>
+                            </tr>
+                            <tr>
+                                <td>GB</td>
+                                <td class="highlight-val">0.9891</td>
+                                <td>0.9733</td>
+                                <td>0.9803</td>
+                                <td>0.9119</td>
+                                <td class="highlight-val">0.9834</td>
+                                <td>0.9822</td>
+                                <td>0.9829</td>
+                                <td>0.8304</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p>
+                    실험 결과, 선형 기반의 rSVD만을 적용했을 때보다 비선형 적층 오토인코더(NSA)를 적용한 NOTE가 일관되게 모든 분류기에서 가장 뛰어난 성능을 발휘하였습니다. 이는 실제 신용 데이터에 존재하는 고차원 비선형 매니폴드를 보존하는 데 있어 NSA의 구조적 우월성을 강력히 뒷받침합니다.
+                </p>
+
+                <h3 id="results-stat">5.4 통계적 유의성 검정 (Statistical Significance)</h3>
+                <p>
+                    모델 간의 성능 차이가 우연에 의한 것이 아님을 증명하기 위해 비모수 순위 검정인 <strong>프리드먼 검정(Friedman test)</strong>과 사후 분석으로 <strong>네메니 검정(Nemenyi post-hoc test)</strong>을 실시하였습니다.
+                </p>
+                <div class="table-wrapper">
+                    <table>
+                        <caption>표 5. HE 및 GMSC 데이터셋에 대한 프리드먼 검정 결과 (유의수준 p < 0.05 기준)</caption>
+                        <thead>
+                            <tr>
+                                <th>비교 그룹</th>
+                                <th>데이터셋</th>
+                                <th>카이제곱 통계량 ($\chi^2$)</th>
+                                <th>유의확률 (p-value)</th>
+                                <th>통계적 유의성 판정</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td rowspan="2"><strong>오버샘플링 기법 간 비교</strong><br>(NOTE vs ADS-GAN vs DeepSMOTE vs None)</td>
+                                <td>HE</td>
+                                <td>15.44</td>
+                                <td class="highlight-val">0.0039</td>
+                                <td><strong>통계적으로 매우 유의함 (Significant)</strong></td>
+                            </tr>
+                            <tr>
+                                <td>GMSC</td>
+                                <td>11.40</td>
+                                <td class="highlight-val">0.0224</td>
+                                <td><strong>통계적으로 유의함 (Significant)</strong></td>
+                            </tr>
+                            <tr>
+                                <td rowspan="2"><strong>특징 추출 기법 간 비교</strong><br>(NOTE vs rSVD vs rSVD+NSA vs cWGAN)</td>
+                                <td>HE</td>
+                                <td>9.92</td>
+                                <td class="highlight-val">0.0192</td>
+                                <td><strong>통계적으로 유의함 (Significant)</strong></td>
+                            </tr>
+                            <tr>
+                                <td>GMSC</td>
+                                <td>9.90</td>
+                                <td class="highlight-val">0.0194</td>
+                                <td><strong>통계적으로 유의함 (Significant)</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p>
+                    모든 검정에서 p-값이 0.05보다 훨씬 작게 나타나(최저 p=0.0039), NOTE 프레임워크가 달성한 성능 향상이 통계적으로 완전히 유의미함을 명확하게 확증하였습니다.
+                </p>
+
+                <h3 id="results-shap">5.5 SHAP을 통한 모델 설명 가능성(XAI) 분석</h3>
+                <p>
+                    NOTE는 최고 성능을 기록한 Extra Trees 및 Gradient Boosting 모델에 <strong>TreeExplainer</strong>를 적용하여 전역적 및 개별적 판정 메커니즘을 상세히 시각화하였습니다:
+                </p>
+                <ul style="padding-left: 1.5rem; margin-bottom: 1.25rem;">
+                    <li style="margin-bottom: 0.6rem;"><strong>전역적 피처 중요도 (Summary Plot):</strong> GMSC 데이터셋에서 <code>RevolvingUtilizationOfUnsecuredLines</code>(신용 한도 소진율), <code>NumberOfTime30-59DaysPastDueNotWorse</code>(단기 연체 이력), <code>DebtRatio</code>(부채비율)가 부도 예측에 가장 결정적인 기여를 하는 것으로 확인되었습니다. HE 데이터셋에서는 <code>DEBTINC</code>(소득 대비 부채비율)와 <code>DELINQ</code>(연체 계좌 수)가 압도적인 중요도를 나타냈습니다.</li>
+                    <li style="margin-bottom: 0.6rem;"><strong>특성 상호작용 분석 (Dependence Plot):</strong> 신용 한도 소진율이 특정 임계값(예: 80%)을 넘어서는 순간 SHAP 값이 지수적으로 급증하며 부도 확률을 급격히 끌어올리는 비선형적 임계 효과를 명확하게 포착하였습니다.</li>
+                    <li><strong>개별 대출 심사 설명 (Waterfall & Force Plot):</strong> 특정 대출 신청자가 부도로 판정된 구체적인 원인(예: 높은 신용카드 한도 소진율 + 최근 30일 연체 2회)을 정량적 섀플리 값 점수로 분해하여 대출 심사역과 고객 모두가 납득할 수 있는 투명한 심사 보고서를 생성할 수 있음을 입증하였습니다.</li>
+                </ul>
+            </section>
+
+            <!-- 6. Discussion -->
+            <section id="discussion">
+                <h2><i class="fa-solid fa-comments"></i> 6. 고찰 및 논의 (Discussion)</h2>
+                <p>
+                    본 연구의 실험 결과는 불균형하고 복잡한 신용 평가 환경에서 <strong>비모수 적층 오토인코더(NSA)와 조건부 와서스타인 GAN(cWGAN)의 결합</strong>이 기존의 단순 오버샘플링(SMOTE)이나 선형 특징 추출(PCA, rSVD)보다 근본적으로 우월함을 명확하게 입증합니다.
+                </p>
+                <p>
+                    특히 트리 기반 앙상블 모델(ET, RF, GB)과 결합되었을 때 최고 AUC 0.99 수준에 도달하는 경이로운 정확도를 보여주었습니다. 이는 금융 기관이 채무 불이행 위험을 사전에 정밀하게 차단함으로써 부실 채권 비율을 획기적으로 낮출 수 있음을 시사합니다. 또한 TreeExplainer를 통해 모수 모델(LR)의 전유물로 여겨졌던 해석 가능성을 비모수 앙상블 모델에서도 완벽하게 확보할 수 있음을 규명하였습니다.
+                </p>
+                <div class="callout warning">
+                    <div class="callout-title"><i class="fa-solid fa-triangle-exclamation"></i> 연구의 한계점 및 향후 과제</div>
+                    <ul style="padding-left: 1.25rem; margin-bottom: 0;">
+                        <li><strong>데이터셋 다양성:</strong> 본 연구는 대표적인 2개의 벤치마크 데이터셋(HE, GMSC)에서 검증되었으나, 국가별·금융권별(P2P 대출, 소상공인 대출 등) 보다 다양한 신용 데이터셋에 대한 추가적인 일반화 검증이 권장됩니다.</li>
+                        <li><strong>순차적 훈련 구조의 오차 전파 가능성:</strong> 현재 NOTE는 NSA와 cWGAN을 순차적(Two-stage)으로 분리 학습합니다. 이로 인해 NSA 단계의 잠재적 오차가 cWGAN으로 전파될 가능성이 있으며, 향후 두 네트워크를 종단간(End-to-End)으로 공동 최적화하는 아키텍처 연구가 유망합니다.</li>
+                        <li><strong>변분 오토인코더(VAE)와의 통합:</strong> 결정론적(Deterministic) 오토인코더 대신 확률론적 잠재 공간을 모델링하는 변분 오토인코더(Variational Autoencoder, VAE)를 cWGAN과 결합함으로써 합성 데이터의 다양성과 분포 일치도를 더욱 정교화할 계획입니다.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- 7. Conclusion -->
+            <section id="conclusion">
+                <h2><i class="fa-solid fa-flag-checkered"></i> 7. 결론 (Conclusion)</h2>
+                <p>
+                    본 논문에서는 비선형 불균형 신용 평가 데이터셋의 본질적 과제를 해결하기 위한 혁신적인 비모수 오버샘플링 프레임워크인 <strong>NOTE(Non-parametric Oversampling Technique for Explainable credit scoring)</strong>를 제안하였습니다.
+                </p>
+                <p>
+                    NOTE는 비모수 적층 오토인코더(NSA)를 통해 비선형 잠재 특징을 보존하고, 조건부 와서스타인 GAN(cWGAN-GP)을 통해 소수 클래스를 현실과 정밀하게 부합하도록 합성 증강하며, SHAP 기반 TreeExplainer/LinearExplainer를 통해 높은 신뢰도의 모델 설명력을 제공합니다.
+                </p>
+                <p>
+                    광범위한 벤치마크 실험과 엄격한 통계적 검증을 통해, NOTE가 기존 최신 오버샘플링 기술 및 벤치마크 모델들을 일관되게 압도함을 입증하였습니다. 결론적으로 NOTE 프레임워크는 현대 금융 시스템에서 높은 대출 승인 정확도와 규제 준수를 위한 투명성을 동시에 충족할 수 있는 강력하고 실용적인 신용 평가 솔루션으로 자리매김할 것입니다.
+                </p>
+            </section>
+
+            <!-- 8. References -->
+            <section id="references">
+                <h2><i class="fa-solid fa-list"></i> 8. 주요 참고문헌 (References)</h2>
+                <ol style="padding-left: 1.5rem; font-size: 0.88rem; color: var(--text-muted); line-height: 1.7;">
+                    <li>Anderson, R. <em>The Credit Scoring Toolkit: Theory and Practice for Retail Credit Risk Management and Decision Automation</em>. Oxford University Press, 2007.</li>
+                    <li>Munkhdalai, L., Munkhdalai, T., Namsrai, O.-E., Lee, J. Y. & Ryu, K. H. An empirical comparison of machine-learning methods on bank client credit assessments. <em>Neurocomputing</em> 333, 440–448 (2019).</li>
+                    <li>Bazarbash, M. <em>Fintech in Financial Inclusion: Machine Learning Applications in Assessing Credit Risk</em>. IMF Working Paper (2019).</li>
+                    <li>Chawla, N. V., Bowyer, K. W., Hall, L. O. & Kegelmeyer, W. P. SMOTE: synthetic minority over-sampling technique. <em>JAIR</em> 16, 321–357 (2002).</li>
+                    <li>Engelmann, J. & Lessmann, S. Conditional Wasserstein GAN-based oversampling of tabular data for imbalanced learning. <em>Expert Systems with Applications</em> 174, 114582 (2021).</li>
+                    <li>Lundberg, S. M. et al. From local explanations to global understanding with explainable AI for trees. <em>Nature Machine Intelligence</em> 2, 56–67 (2020).</li>
+                    <li>Yoon, J., Jordon, J. & van der Schaar, M. Anonymization through data synthesis using generative adversarial networks (ADS-GAN). <em>IEEE J-STSP</em> 14, 925–937 (2020).</li>
+                    <li>Dinsdale, N. K., Jenkinson, M. & Namburete, A. I. DeepSMOTE: An approach for generating synthetic data for imbalanced classes. <em>Medical Image Analysis</em> 79, 102434 (2022).</li>
+                    <li>Gulrajani, I., Ahmed, F., Arjovsky, M., Dumoulin, V. & Courville, A. Improved training of Wasserstein GANs. <em>NeurIPS</em> 30 (2017).</li>
+                    <li>Arjovsky, M., Chintala, S. & Bottou, L. Wasserstein generative adversarial networks. <em>ICML</em> 214–223 (2017).</li>
+                </ol>
+            </section>
+
+            <footer>
+                <p>&copy; 2024-2026 NOTE 논문 한국어 완역본 &middot; 원저자: Seongil Han, Haemin Jung, Paul D. Yoo, Alessandro Provetti, Andrea Cali</p>
+                <p style="margin-top:0.3rem;">Scientific Reports (2024) 14:26070 &middot; Generated for Academic Study and Research Convenience</p>
+            </footer>
+        </main>
+    </div>
+
+    <!-- Interactive Scripts -->
+    <script>
+        // KaTeX Auto-render
+        document.addEventListener("DOMContentLoaded", function() {
+            renderMathInElement(document.body, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '$', right: '$', display: false}
+                ],
+                throwOnError : false
+            });
+        });
+
+        // Theme Toggle (Dark / Light)
+        const btnTheme = document.getElementById('btn-theme');
+        const currentTheme = localStorage.getItem('theme') || 'light';
+        if (currentTheme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            btnTheme.innerHTML = '<i class="fa-solid fa-sun"></i>';
+        }
+
+        btnTheme.addEventListener('click', () => {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            if (isDark) {
+                document.documentElement.removeAttribute('data-theme');
+                localStorage.setItem('theme', 'light');
+                btnTheme.innerHTML = '<i class="fa-solid fa-moon"></i>';
+            } else {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+                btnTheme.innerHTML = '<i class="fa-solid fa-sun"></i>';
+            }
+        });
+
+        // Font Size Adjustments
+        let currentFontSize = 16;
+        document.getElementById('btn-font-inc').addEventListener('click', () => {
+            if (currentFontSize < 22) {
+                currentFontSize += 1;
+                document.documentElement.style.setProperty('--font-size', currentFontSize + 'px');
+            }
+        });
+        document.getElementById('btn-font-dec').addEventListener('click', () => {
+            if (currentFontSize > 13) {
+                currentFontSize -= 1;
+                document.documentElement.style.setProperty('--font-size', currentFontSize + 'px');
+            }
+        });
+
+        // Scrollspy for Sidebar TOC
+        const sections = document.querySelectorAll('section, h3[id]');
+        const tocLinks = document.querySelectorAll('.toc-link');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (window.scrollY >= sectionTop - 120) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            tocLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+
