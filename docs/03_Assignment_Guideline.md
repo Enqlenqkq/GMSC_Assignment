@@ -43,7 +43,7 @@
    ↓ "모수적(Parametric) 모델 vs 비모수적(Non-parametric) 트리 앙상블 vs 신경망(MLP)"
 [Phase 5] 하이퍼파라미터 튜닝, 다각도 평가지표 검증 및 모델 저장 (Lab 4, Lab 5 + NATE/NOTE)
    ↓ "Accuracy의 함정을 넘어 AUROC, MCC, F1, 연산 시간으로 최적 모델을 어떻게 확정할까?"
-[Phase 6] 설명 가능한 AI (XAI - SHAP) 및 비즈니스 인사이트 도출 (Lab 3, Lab 7 + NOTE/NATE)
+[Phase 6] 설명 가능한 AI (XAI - SHAP) 및 비즈니스 인사이트 도출 (Lab 3 + NOTE/NATE)
    ↓ "블랙박스 모델이 왜 특정 고객을 부도 위험군으로 예측했는가?"
 ```
 
@@ -180,7 +180,7 @@
   - Lab 3에서 배운 트리의 불순도 기반 `feature_importances_`는 전체 데이터에서 어떤 변수가 자주 쓰였는지만 알려줄 뿐, **그 변수가 부도 확률을 높이는 방향(+)으로 작용했는지 낮추는 방향(-)으로 작용했는지, 그리고 특정 개인 고객에게는 왜 그런 판정이 나왔는지(Local explanation)** 설명하지 못합니다.
   - 반면 **`shap.TreeExplainer`**를 사용하면:
     1. **전역적 해석 (Global)**: **Summary Bar Plot & Violin/Beeswarm Plot**을 통해 전체 고객에 대해 `CombinedDefaulted`, `RevolvingUtilizationOfUnsecuredLines`, `NumberOfTime30-59DaysPastDueNotWorse` 순으로 영향력이 크며, 값의 고저(색상)에 따라 부도 위험이 어떻게 변하는지 한눈에 보여줍니다.
-    2. **국소적 해석 (Local)**: 테스트셋에서 **실제 부도로 예측된 고위험 고객 1명**과 **정상으로 예측된 고객 1명(또는 Lab 7처럼 오분류된 경계 고객 1명)**을 뽑아 **Force Plot / Waterfall Plot / Decision Plot**으로 각 변수의 기여도($+\phi_i, -\phi_i$)를 분석합니다.
+    2. **국소적 해석 (Local)**: 테스트셋에서 **실제 부도로 예측된 고위험 고객 1명**과 **정상으로 예측된 고객 1명(또는 오분류된 경계 고객 1명)**을 뽑아 **Force Plot / Waterfall Plot / Decision Plot**으로 각 변수의 기여도($+\phi_i, -\phi_i$)를 분석합니다.
 
 #### 2) 필요한 핵심 개념 및 함수
 - **`shap` 라이브러리**:

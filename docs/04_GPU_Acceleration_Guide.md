@@ -82,7 +82,7 @@ rf_gpu = XGBRFClassifier(
 
 ---
 
-### 방법 2: 딥러닝 (Lab 6 MLP, Lab 7 CNN, NOTE 논문의 NSA 오토인코더 & cWGAN) GPU 활용하기
+### 방법 2: 딥러닝 (Lab 6 MLP, NOTE 논문의 NSA 오토인코더 & cWGAN) GPU 활용하기
 
 딥러닝 행렬 연산은 GPU에서 가장 극적인 가속 효과를 볼 수 있습니다. 그런데 **Windows 환경에서는 매우 중요한 버전 규칙**이 하나 있습니다.
 
@@ -97,7 +97,7 @@ rf_gpu = XGBRFClassifier(
    pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
    pip install keras
    ```
-2. 파이썬 코드 최상단에 백엔드 지정 후 Lab 6 / Lab 7과 100% 동일한 코드 사용:
+2. 파이썬 코드 최상단에 백엔드 지정 후 Lab 6과 100% 동일한 코드 사용:
    ```python
    import os
    os.environ["KERAS_BACKEND"] = "torch"  # Keras가 Windows GPU를 지원하는 PyTorch 엔진을 사용하도록 설정!
@@ -110,7 +110,7 @@ rf_gpu = XGBRFClassifier(
    print("GPU 사용 가능 여부:", torch.cuda.is_available())
    print("장착된 GPU 이름:", torch.cuda.get_device_name(0) if torch.cuda.is_available() else "CPU")
    ```
-   이렇게 하면 Lab 6의 MLP, Lab 7의 CNN, 그리고 NOTE 논문의 Stacked Autoencoder(NSA)까지 **코드를 전혀 바꾸지 않고 내 Windows PC의 최신 RTX GPU에서 초고속으로 학습**시킬 수 있습니다!
+   이렇게 하면 Lab 6의 MLP, 그리고 NOTE 논문의 Stacked Autoencoder(NSA)까지 **코드를 전혀 바꾸지 않고 내 Windows PC의 최신 RTX GPU에서 초고속으로 학습**시킬 수 있습니다!
 
 #### 해결책 B: Windows WSL2 (Ubuntu)에서 TensorFlow GPU 실행
 Windows 10/11에 내장된 WSL2 리눅스 환경을 사용하는 경우:
